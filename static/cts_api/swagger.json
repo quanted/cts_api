@@ -5,7 +5,7 @@
         "description": "Endpoints for p-chem, speciation, and transformation data.",
         "version": "1.0.0"
     },
-    "host": "134.67.114.1",
+    "host": "134.678.114.1",
     "schemes": [
         "http",
         "https"
@@ -305,6 +305,40 @@
                         "description": "test input schema",
                         "schema": {
                             "$ref": "#/definitions/TESTInputsResponse"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/test/run": {
+            "post": {
+                "summary": "Run test calculator for p-chem data.",
+                "description": "This endpoint runs test and returns p-chem data\nfrom requested p-chem property.\n",
+                "tags": [
+                    "test"
+                ],
+                "parameters": [
+                    {
+                        "name": "inputs",
+                        "in": "body",
+                        "description": "Outputs for TEST p-chem property request.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RunInputs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Run test calculator for p-chem data.",
+                        "schema": {
+                            "$ref": "#/definitions/CalcOutputs"
                         }
                     },
                     "default": {

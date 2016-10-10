@@ -44,6 +44,8 @@ def request_manager(request):
 	sessionid = request.POST.get('sessionid')
 	node = request.POST.get('node')
 	mass = request.POST.get('mass')  # for water solubility
+	run_type = request.POST.get('run_type')
+	prop = request.POST.get('prop')
 
 	if calc_data:
 		calc = "test"
@@ -57,6 +59,7 @@ def request_manager(request):
 
 	# filter smiles before sending to TEST:
 	# ++++++++++++++++++++++++ smiles filtering!!! ++++++++++++++++++++
+
 	try:
 		filtered_smiles = parseSmilesByCalculator(structure, calc) # call smilesfilter
 	except Exception as err:
@@ -73,6 +76,10 @@ def request_manager(request):
 	# test_results = tasked_calls.delay(sessionid, filtered_smiles, props)
 	calcObj = TestCalc()
 	test_results = []
+
+	if run_type == 'rest':
+		props = [prop]  # rest api currently does single prop calls
+
 	for prop in props:
 
 		data_obj = {'calc': calc, 'prop':prop, 'node': node}
