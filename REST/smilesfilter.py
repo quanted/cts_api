@@ -126,7 +126,7 @@ def parseSmilesByCalculator(structure, calculator):
     """
     Calculator-dependent SMILES filtering!
     """
-    from chemaxon_cts import jchem_rest
+    from cts_api.chemaxon_cts import jchem_rest
 
     logging.info("Parsing SMILES by calculator..")
     filtered_smiles = structure

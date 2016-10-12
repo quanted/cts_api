@@ -9,6 +9,7 @@ from cts_api.REST.smilesfilter import parseSmilesByCalculator
 
 from celery import Celery
 from django.conf import settings
+from cts_api.chemaxon_cts import jchem_rest
 # import redis
 
 
@@ -45,6 +46,9 @@ def request_manager(request):
 	node = request.POST.get('node')
 	mass = request.POST.get('mass')  # for water solubility
 
+	run_type = request.POST.get('run_type')
+	prop = request.POST.get('prop')
+
 	if calc_data:
 		calc = "test"
 		props = calc_data['test']  # list of props
@@ -54,6 +58,8 @@ def request_manager(request):
 		# "prop": prop
 		# "props": props
 	}
+
+	filtered_smiles = ''
 
 	# filter smiles before sending to TEST:
 	# ++++++++++++++++++++++++ smiles filtering!!! ++++++++++++++++++++
@@ -73,6 +79,15 @@ def request_manager(request):
 	# test_results = tasked_calls.delay(sessionid, filtered_smiles, props)
 	calcObj = TestCalc()
 	test_results = []
+
+	if run_type == 'rest':
+		props = [prop]  # rest api currently does single prop calls
+		jchem_request = requests.Request(data={'chemical': filtered_smiles})
+		jchem_response = jchem_rest.getMass(jchem_request)
+		mass = json.loads(jchem_response.content)[0]['data']['mass']
+
+		logging.warning("run type: {}".format(run_type))
+
 	for prop in props:
 
 		data_obj = {'calc': calc, 'prop':prop, 'node': node}
@@ -83,7 +98,7 @@ def request_manager(request):
 			response = calcObj.makeDataRequest(filtered_smiles, calc, prop)
 			response_json = json.loads(response.content)
 
-			logging.info("TEST response data for {}: {}".format(prop, response_json))
+			logging.warning("TEST response data for {}: {}".format(prop, response_json))
 
 			# sometimes TEST data successfully returns but with an error:
 			if response.status_code != 200:

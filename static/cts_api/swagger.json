@@ -316,6 +316,40 @@
                 }
             }
         },
+        "/test/run": {
+            "post": {
+                "summary": "Run test calculator for p-chem data.",
+                "description": "This endpoint runs test and returns p-chem data\nfrom requested p-chem property.\n",
+                "tags": [
+                    "test"
+                ],
+                "parameters": [
+                    {
+                        "name": "inputs",
+                        "in": "body",
+                        "description": "Outputs for TEST p-chem property request.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RunInputs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Run test calculator for p-chem data.",
+                        "schema": {
+                            "$ref": "#/definitions/CalcOutputs"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
         "/sparc": {
             "get": {
                 "summary": "SPARC REST endpoints",

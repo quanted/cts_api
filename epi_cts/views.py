@@ -47,6 +47,7 @@ def request_manager(request):
 		# 'props': props
 	}
 
+	filtered_smiles = ''
 	try:
 		# ++++++++++++++++++++++++ smiles filtering!!! ++++++++++++++++++++
 		filtered_smiles = parseSmilesByCalculator(structure, "epi") # call smilesfilter
