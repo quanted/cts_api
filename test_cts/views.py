@@ -45,6 +45,8 @@ def request_manager(request):
 	sessionid = request.POST.get('sessionid')
 	node = request.POST.get('node')
 	mass = request.POST.get('mass')  # for water solubility
+	run_type = request.POST.get('run_type')
+	prop = request.POST.get('prop')
 
 	run_type = request.POST.get('run_type')
 	prop = request.POST.get('prop')
@@ -63,6 +65,7 @@ def request_manager(request):
 
 	# filter smiles before sending to TEST:
 	# ++++++++++++++++++++++++ smiles filtering!!! ++++++++++++++++++++
+
 	try:
 		filtered_smiles = parseSmilesByCalculator(structure, calc) # call smilesfilter
 	except Exception as err:
@@ -85,8 +88,6 @@ def request_manager(request):
 		jchem_request = requests.Request(data={'chemical': filtered_smiles})
 		jchem_response = jchem_rest.getMass(jchem_request)
 		mass = json.loads(jchem_response.content)[0]['data']['mass']
-
-		logging.warning("run type: {}".format(run_type))
 
 	for prop in props:
 
