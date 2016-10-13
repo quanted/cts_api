@@ -87,10 +87,7 @@ def request_manager(request):
 
 	if run_type == 'rest':
 		props = [prop]  # rest api currently does single prop calls
-		jchem_request = requests.Request(data={'chemical': filtered_smiles})
-
-		logging.warning("jchem request for mass created: {}".format(jchem_request))
-
+		jchem_request = requests.Request(data={'smiles': filtered_smiles})
 		jchem_response = jchem_rest.getMass(jchem_request)
 
 		logging.warning("response: {}".format(jchem_response))
