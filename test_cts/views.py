@@ -90,9 +90,9 @@ def request_manager(request):
 		jchem_request = requests.Request(data={'smiles': filtered_smiles})
 		jchem_response = jchem_rest.getMass(jchem_request)
 
-		logging.warning("response: {}".format(jchem_response))
+		logging.warning("response: {}".format(jchem_response.content))
 
-		mass = json.loads(jchem_response.content)[0]['data']['mass']
+		mass = json.loads(jchem_response.content)['data'][0]['mass']
 
 		logging.warning("mass: {}".format(mass))
 
