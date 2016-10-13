@@ -89,6 +89,8 @@ def request_manager(request):
 		jchem_response = jchem_rest.getMass(jchem_request)
 		mass = json.loads(jchem_response.content)[0]['data']['mass']
 
+	logging.warning("TEST mass: {}".format(mass))
+
 	for prop in props:
 
 		data_obj = {'calc': calc, 'prop':prop, 'node': node}
