@@ -72,4 +72,5 @@ def runCalc(request, calc=None):
 		return cts_rest.CTS_REST().runCalc(calc, calc_request)
 	except Exception as e:
 		logging.warning("~~~ exception occurring at cts_api views runCalc!")
+		logging.warning("exception: {}".format(e))
 		return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')

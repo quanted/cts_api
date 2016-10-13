@@ -208,6 +208,9 @@ class CTS_REST(object):
 		_response = {}
 		_response = self.meta_info
 
+		logging.warning("runCalc cts_rest request: {}".format(request))
+		logging.warning("calc: {}".format(calc))
+
 		if calc == 'metabolizer':
 			structure = request.POST.get('structure')
 			gen_limit = request.POST.get('generationLimit')

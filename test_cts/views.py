@@ -76,7 +76,7 @@ def request_manager(request):
 	#   logging.warning("TEST ignoring request due to brackets in SMILES..")
 	#   postData.update({'error': "TEST cannot process charged species or metals (e.g., [S+], [c+])"})
 	#   return HttpResponse(json.dumps(postData), content_type='application/json')
-	logging.info("TEST Filtered SMILES: {}".format(filtered_smiles))
+	logging.warning("TEST Filtered SMILES: {}".format(filtered_smiles))
 	# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	# test_results = tasked_calls.delay(sessionid, filtered_smiles, props)
