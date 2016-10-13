@@ -83,11 +83,21 @@ def request_manager(request):
 	calcObj = TestCalc()
 	test_results = []
 
+	logging.warning("run_type: {}".format(run_type))
+
 	if run_type == 'rest':
 		props = [prop]  # rest api currently does single prop calls
 		jchem_request = requests.Request(data={'chemical': filtered_smiles})
+
+		logging.warning("jchem request for mass created: {}".format(jchem_request))
+
 		jchem_response = jchem_rest.getMass(jchem_request)
+
+		logging.warning("response: {}".format(jchem_response))
+
 		mass = json.loads(jchem_response.content)[0]['data']['mass']
+
+		logging.warning("mass: {}".format(mass))
 
 	logging.warning("TEST mass: {}".format(mass))
 
