@@ -26,6 +26,6 @@ Quick start
 
 3. Include the polls URLconf in your project urls.py like this::
 
-    url(r'^api/cts', include('cts_api.urls')),
+    url(r'^api/cts/', include('cts_api.urls')),
 
 6. Visit http://134.67.114.1/api/cts/ for API docs.
