@@ -25,8 +25,8 @@ from cts_calcs.measured_cts import views as measured_views
 from cts_calcs.test_cts import views as test_views
 from cts_calcs.sparc_cts import views as sparc_views
 from cts_calcs.smilesfilter import filterSMILES
-from models.chemspec import chemspec_output
-from models.gentrans import data_walks
+from models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
+from cts_calcs import data_walks
 
 
 
