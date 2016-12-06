@@ -1,6 +1,5 @@
 #  https://docs.djangoproject.com/en/1.6/intro/tutorial03/
-from django.conf.urls import patterns, include, url
-from chemaxon_cts import jchem_rest
+from django.conf.urls import url
 # from django.contrib import admin
 # admin.autodiscover()
 from cts_api import cts_rest
@@ -12,19 +11,19 @@ from cts_api import views
 
 # todo: use cts_api.views for every endpoint, which calls cts_rest
 
-urlpatterns = patterns('',
-	# (r'^/?$', 'cts_api.views.getCTSEndpoints'),
-	(r'^/?$', 'cts_api.REST.cts_rest.showSwaggerPage'),
-	(r'^swag/?$', 'cts_api.views.getSwaggerJsonContent'),
-	# (r'^docs/?$', 'cts_api.REST.cts_rest.showSwaggerPage'),
+urlpatterns = [
+	# (r'^/?$', 'views.getCTSEndpoints'),
+	url(r'^$', cts_rest.showSwaggerPage),
+	url(r'^swag/?$', views.getSwaggerJsonContent),
+	# url(r'^docs/?$', cts_rest.showSwaggerPage),
 
-	(r'^molecule/?$', 'cts_api.REST.cts_rest.getChemicalEditorData'),
-	# (r'^speciation/?$', 'cts_rest.getChemicalEditorData'),
+	url(r'^molecule/?$', cts_rest.getChemicalEditorData),
+	# url(r'^speciation/?$', cts_rest.getChemicalEditorData),
 
-	(r'^(?P<calc>.*?)/inputs/?$', 'cts_api.views.getCalcInputs'),
-	(r'^(?P<calc>.*?)/run/?$', 'cts_api.views.runCalc'),
-	(r'^(?P<endpoint>.*?)/?$', 'cts_api.views.getCalcEndpoints'),
-)
+	url(r'^(?P<calc>.*?)/inputs/?$', views.getCalcInputs),
+	url(r'^(?P<calc>.*?)/run/?$', views.runCalc),
+	url(r'^(?P<endpoint>.*?)/?$', views.getCalcEndpoints),
+]
 
 # # 404 Error view (file not found)
 # handler404 = 'views.misc.fileNotFound'

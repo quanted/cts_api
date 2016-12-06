@@ -6,7 +6,6 @@ and reaction pathways.
 """
 
 import logging
-import requests
 import json
 import datetime
 import pytz
@@ -25,7 +24,7 @@ from cts_calcs.epi_cts import epi_calculator
 from cts_calcs.measured_cts import views as measured_views
 from cts_calcs.test_cts import views as test_views
 from cts_calcs.sparc_cts import views as sparc_views
-from smilesfilter import filterSMILES
+from cts_calcs.smilesfilter import filterSMILES
 from models.chemspec import chemspec_output
 from models.gentrans import data_walks
 
