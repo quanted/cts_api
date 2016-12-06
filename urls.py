@@ -3,7 +3,7 @@ from django.conf.urls import patterns, include, url
 from chemaxon_cts import jchem_rest
 # from django.contrib import admin
 # admin.autodiscover()
-from cts_api.REST import cts_rest
+from cts_api import cts_rest
 from cts_api import views
 
 

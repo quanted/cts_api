@@ -3,7 +3,7 @@ Calls CTS REST classes, functions linked to
 CTS REST URLs - Swagger UI
 """
 
-from REST import cts_rest
+from cts_api import cts_rest
 from django.http import HttpRequest, HttpResponse
 import json
 from django.conf import settings
