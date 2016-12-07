@@ -12,14 +12,13 @@ from cts_api import views
 # todo: use cts_api.views for every endpoint, which calls cts_rest
 
 urlpatterns = [
-	# (r'^/?$', 'views.getCTSEndpoints'),
 	url(r'^$', cts_rest.showSwaggerPage),
 	url(r'^swag/?$', views.getSwaggerJsonContent),
-	# url(r'^docs/?$', cts_rest.showSwaggerPage),
 
+	# chemical-based urls
 	url(r'^molecule/?$', cts_rest.getChemicalEditorData),
-	# url(r'^speciation/?$', cts_rest.getChemicalEditorData),
 
+	# calc-based urls
 	url(r'^(?P<calc>.*?)/inputs/?$', views.getCalcInputs),
 	url(r'^(?P<calc>.*?)/run/?$', views.runCalc),
 	url(r'^(?P<endpoint>.*?)/?$', views.getCalcEndpoints),
