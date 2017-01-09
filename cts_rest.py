@@ -17,16 +17,16 @@ from django.shortcuts import render_to_response
 # !!!! These are other CTS repos !!!!
 # cts_calcs is a ubertool_cts submodule
 # models is a part of ubertool_cts
-from cts_calcs.chemaxon_cts import jchem_rest, jchem_calculator
-from cts_calcs.chemaxon_cts import views as chemaxon_views
-from cts_calcs.epi_cts import worker as epi_views
-from cts_calcs.epi_cts import epi_calculator
-from cts_calcs.measured_cts import views as measured_views
-from cts_calcs.test_cts import views as test_views
-from cts_calcs.sparc_cts import views as sparc_views
-from cts_calcs.smilesfilter import filterSMILES
-from models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
-from cts_calcs import data_walks
+from cts_app.cts_calcs.chemaxon_cts import jchem_rest, jchem_calculator
+from cts_app.cts_calcs.chemaxon_cts import views as chemaxon_views
+from cts_app.cts_calcs.epi_cts import worker as epi_views
+from cts_app.cts_calcs.epi_cts import epi_calculator
+from cts_app.cts_calcs.measured_cts import views as measured_views
+from cts_app.cts_calcs.test_cts import views as test_views
+from cts_app.cts_calcs.sparc_cts import views as sparc_views
+from cts_app.cts_calcs.smilesfilter import filterSMILES
+from cts_app.models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
+from cts_app.cts_calcs import data_walks
 
 
 
