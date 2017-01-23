@@ -626,7 +626,7 @@ def showSwaggerPage(request):
 	display swagger.json with swagger UI
 	for CTS API docs/endpoints
 	"""
-	return render_to_response('swagger_index.html')
+	return render_to_response('cts_api/swagger_index.html')
 
 
 def getChemicalEditorData(request):
