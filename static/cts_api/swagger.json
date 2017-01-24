@@ -6,8 +6,8 @@
         "version": "1.0.0"
     },
     "schemes": [
-        "http",
-        "https"
+        "https",
+        "http"
     ],
     "basePath": "/cts/rest",
     "produces": [
@@ -18,7 +18,7 @@
         "application/json",
         "text/html"
     ],
-    "paths": {
+    "paths": {  
         "/cts": {
             "get": {
                 "summary": "CTS REST enpoints.",
