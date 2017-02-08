@@ -64,9 +64,14 @@ def getCalcInputs(request, calc=None):
 
 def runCalc(request, calc=None):
 
-	request_params = json.loads(request.body)
+	try:
+		request_params = json.loads(request.body)
+	except ValueError as te:
+		request_params = request.POST
+
 	calc_request = HttpRequest()
 	calc_request.POST = request_params
+	calc_request.method = 'POST'
 
 	try:
 		return cts_rest.CTS_REST().runCalc(calc, calc_request)

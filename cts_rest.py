@@ -228,6 +228,14 @@ class CTS_REST(object):
 			_response.update({'data': json.loads(data_walks.recursive(response, int(gen_limit)))})
 			_response.update({'request_post': request.POST})
 
+		elif calc == 'speciation':
+			# response = getChemicalSpeciationData(request)
+			# _response.update({'data': json.loads(response.content)})
+
+			logging.info("CTS REST - speciation")
+
+			return getChemicalSpeciationData(request)
+
 		else:
 			pchem_data = {}
 			if calc == 'chemaxon':
@@ -700,6 +708,8 @@ def getChemicalSpeciationData(request):
 
 	try:
 
+		logging.info("Incoming request for speciation data: {}".format(request.POST))
+
 		chemspec_obj = chemspec_output.chemspecOutputPage(request)
 
 		wrapped_post = {
@@ -708,10 +718,13 @@ def getChemicalSpeciationData(request):
 		}
 		json_data = json.dumps(wrapped_post)
 
+		logging.info("chemspec model data: {}".format(chemspec_obj))
+
 		return HttpResponse(json_data, content_type='application/json')
 
 	except Exception as error:
-		raise
+		logging.warning("Error in cts_rest, getChemicalSpecation(): {}".format(error))
+		return HttpResponse("Error getting speciation data")
 
 
 def booleanize(value):
