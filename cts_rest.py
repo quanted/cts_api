@@ -49,15 +49,28 @@ class Molecule(object):
 		self.structureData = ''
 		self.exactMass = ''
 
-	def createMolecule(self, chemical, orig_smiles, chem_details_response):
+	def createMolecule(self, chemical, orig_smiles, chem_details_response, get_structure_data=None):
 		"""
 		Gets Molecule attributes from jchem_rest getChemDetails response
 		"""
+
+		logging.warning("STRUCTURE DATA: {}".format(get_structure_data))
+
 		try:
 			# set attrs from jchem data:
 			for key in self.__dict__.keys():
+				# if key == 'structureData' and structureData:
+				# 	self.__setattr__(key, chem_details_response['data'][0])
+
+				# get_sd = key == 'structureData' and get_structure_data != None
+				# logging.warning("KEY: {}, BOOL: {}".format(key, get_sd))
+
 				if key != 'orig_smiles' and key != 'chemical':
-					self.__setattr__(key, chem_details_response['data'][0][key])
+					logging.warning("elif key: {}".format(key))
+					if key == 'structureData' and get_structure_data == None:
+						pass
+					else:
+						self.__setattr__(key, chem_details_response['data'][0][key])
 			# set cts attrs:
 			self.__setattr__('chemical', chemical)
 			self.__setattr__('orig_smiles', orig_smiles)
@@ -644,6 +657,10 @@ def getChemicalEditorData(request):
 	then filters smiles, and then retrieves data
 	:param request:
 	:return: chemical details response json
+
+	Note: Due to marvin sketch image data (<cml> image) being
+	so large, a bool, "structureData", is used to determine
+	whether or not to grab it. It's only needed in chem edit tab.
 	"""
 	try:
 
@@ -657,10 +674,9 @@ def getChemicalEditorData(request):
 
 		# chemical = request.POST.get('chemical')
 		chemical = request_post.get('chemical')
+		get_sd = request_post.get('get_structure_data')  # bool for getting <cml> format image for marvin sketch
 
 		response = jchem_rest.convertToSMILES({'chemical': chemical})
-
-		logging.warning("Converted SMILES: {}".format(response))
 
 		orig_smiles = response['structure']
 		filtered_smiles = filterSMILES(orig_smiles)  # call CTS REST SMILES filter
@@ -669,7 +685,7 @@ def getChemicalEditorData(request):
 
 		jchem_response = jchem_rest.getChemDetails({'chemical': filtered_smiles})  # get chemical details
 
-		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response)
+		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response, get_sd)
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
