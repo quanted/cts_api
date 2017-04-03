@@ -69,12 +69,12 @@ def runCalc(request, calc=None):
 	except ValueError as te:
 		request_params = request.POST
 
-	calc_request = HttpRequest()
-	calc_request.POST = request_params
-	calc_request.method = 'POST'
+	# calc_request = HttpRequest()
+	# calc_request.POST = request_params
+	# calc_request.method = 'POST'
 
 	try:
-		return cts_rest.CTS_REST().runCalc(calc, calc_request)
+		return cts_rest.CTS_REST().runCalc(calc, request_params)
 	except Exception as e:
 		logging.warning("~~~ exception occurring at cts_api views runCalc!")
 		logging.warning("exception: {}".format(e))

@@ -17,16 +17,28 @@ from django.shortcuts import render_to_response
 # !!!! These are other CTS repos !!!!
 # cts_calcs is a ubertool_cts submodule
 # models is a part of ubertool_cts
-from cts_app.cts_calcs.chemaxon_cts import jchem_rest, jchem_calculator
-from cts_app.cts_calcs.chemaxon_cts import views as chemaxon_views
-from cts_app.cts_calcs.epi_cts import worker as epi_views
-from cts_app.cts_calcs.epi_cts import epi_calculator
-from cts_app.cts_calcs.measured_cts import views as measured_views
-from cts_app.cts_calcs.test_cts import views as test_views
-from cts_app.cts_calcs.sparc_cts import views as sparc_views
-from cts_app.cts_calcs.smilesfilter import filterSMILES
+# from cts_app.cts_calcs.chemaxon_cts import jchem_rest
+# from cts_app.cts_calcs.chemaxon_cts import views as chemaxon_views
+# from cts_app.cts_calcs.epi_cts import worker as epi_views
+# from cts_app.cts_calcs.epi_cts import epi_calculator
+# from cts_app.cts_calcs.measured_cts import views as measured_views
+# from cts_app.cts_calcs.test_cts import views as test_views
+# from cts_app.cts_calcs.sparc_cts import views as sparc_views
+
+from cts_app.cts_calcs.calculator_chemaxon import JchemCalc
+from cts_app.cts_calcs.calculator_epi import EpiCalc
+from cts_app.cts_calcs.calculator_measured import MeasuredCalc
+from cts_app.cts_calcs.calculator_test import TestCalc
+from cts_app.cts_calcs.calculator_sparc import SparcCalc
+from cts_app.cts_calcs.calculator_metabolizer import MetabolizerCalc
+
+# # from cts_app.cts_calcs.smilesfilter import filterSMILES
 from cts_app.models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
-from cts_app.cts_calcs import data_walks
+# from cts_app.cts_calcs import data_walks
+
+from cts_app.cts_calcs.calculator import Calculator
+# import smilesfilter
+from cts_app.cts_calcs import smilesfilter
 
 
 
@@ -51,7 +63,7 @@ class Molecule(object):
 
 	def createMolecule(self, chemical, orig_smiles, chem_details_response, get_structure_data=None):
 		"""
-		Gets Molecule attributes from jchem_rest getChemDetails response
+		Gets Molecule attributes from Calculator's getChemDetails response
 		"""
 
 		logging.warning("STRUCTURE DATA: {}".format(get_structure_data))
@@ -158,7 +170,9 @@ class CTS_REST(object):
 
 	@classmethod
 	def getCalcObject(self, calc):
-		if calc == 'chemaxon':
+		if calc == 'cts':
+			return CTS_REST()
+		elif calc == 'chemaxon':
 			return Chemaxon_CTS_REST()
 		elif calc == 'epi':
 			return EPI_CTS_REST()
@@ -218,28 +232,32 @@ class CTS_REST(object):
 			})
 		return HttpResponse(json.dumps(_response), content_type="application/json")
 
-	def runCalc(self, calc, request):
+	def runCalc(self, calc, request_dict):
 
 		_response = {}
 		_response = self.meta_info
 
 		if calc == 'metabolizer':
-			structure = request.POST.get('structure')
-			gen_limit = request.POST.get('generationLimit')
-			trans_libs = request.POST.get('transformationLibraries')
+			structure = request_dict.get('structure')
+			gen_limit = request_dict.get('generationLimit')
+			trans_libs = request_dict.get('transformationLibraries')
 			metabolizer_request = {
-	            'structure': structure,
-	            'generationLimit': gen_limit,
-	            'populationLimit': 0,
-	            'likelyLimit': 0.001,
-	            # 'transformationLibraries': trans_libs,
-	            'excludeCondition': ""  # 'generateImages': False
-	        }
-			response = jchem_rest.getTransProducts(metabolizer_request)
-			data_walks.j = 0
-			data_walks.metID = 0
-			_response.update({'data': json.loads(data_walks.recursive(response, int(gen_limit)))})
-			_response.update({'request_post': request.POST})
+				'structure': structure,
+				'generationLimit': gen_limit,
+				'populationLimit': 0,
+				'likelyLimit': 0.001,
+				# 'transformationLibraries': trans_libs,
+				'excludeCondition': ""  # 'generateImages': False
+			}
+
+			try:
+				response = MetabolizerCalc().getTransProducts(metabolizer_request)
+			except Exception as e:
+				logging.warning("error making data request: {}".format(e))
+				raise
+
+			_progeny_tree = MetabolizerCalc().recursive(response, int(gen_limit))
+			_response.update({'data': _progeny_tree})
 
 		elif calc == 'speciation':
 			# response = getChemicalSpeciationData(request)
@@ -247,22 +265,23 @@ class CTS_REST(object):
 
 			logging.info("CTS REST - speciation")
 
-			return getChemicalSpeciationData(request)
+			return getChemicalSpeciationData(request_dict)
 
 		else:
 			pchem_data = {}
 			if calc == 'chemaxon':
-				pchem_data = chemaxon_views.request_manager(request).content
+				pchem_data = JchemCalc().data_request_handler(request_dict)
+				# logging.warning("PCHEM DATA: {}".format(pchem_data))
 			elif calc == 'epi':
-				pchem_data = epi_views.request_manager(request).content
+				pchem_data = EpiCalc().data_request_handler(request_dict)
 			elif calc == 'test':
-				pchem_data = test_views.request_manager(request).content
+				pchem_data = TestCalc().data_request_handler(request_dict)
 			elif calc == 'sparc':
-				pchem_data = sparc_views.request_manager(request).content
+				pchem_data = SparcCalc().data_request_handler(request_dict)
 			elif calc == 'measured':
-				pchem_data = measured_views.request_manager(request).content
+				pchem_data = MeasuredCalc().data_request_handler(request_dict)
 			
-			_response.update({'data': json.loads(pchem_data)})
+			_response.update({'data': pchem_data})
 
 		return HttpResponse(json.dumps(_response), content_type="application/json")
 
@@ -311,18 +330,6 @@ class Chemaxon_CTS_REST(CTS_REST):
 				]
 			}
 		}
-
-	def runChemaxon(self, request):
-
-		# get molecular info and append to inputs object:
-		# mol_info_response = json.loads(getChemicalEditorData(request).content)
-
-		pchem_data = chemaxon_views.request_manager(request).content
-
-		_response = self.meta_info
-		_response.update({'data': json.loads(pchem_data)})
-
-		return HttpResponse(json.dumps(_response), content_type="application/json")
 
 
 class EPI_CTS_REST(CTS_REST):
@@ -381,22 +388,6 @@ class EPI_CTS_REST(CTS_REST):
 				]
 			}
 		}
-
-	def runEpi(self, request):
-		chemical = request.POST.get('chemical')
-		prop = request.POST.get('prop')
-		ph = request.POST.get('ph')
-		run_type = request.POST.get('run_type')
-
-		# get molecular info and append to inputs object:
-		# mol_info_response = json.loads(getChemicalEditorData(request).content)
-
-		pchem_data = epi_views.request_manager(request).content
-
-		_response = self.meta_info
-		_response.update({'data': json.loads(pchem_data)})
-
-		return HttpResponse(json.dumps(_response), content_type="application/json")
 
 
 class TEST_CTS_REST(CTS_REST):
@@ -507,22 +498,6 @@ class SPARC_CTS_REST(CTS_REST):
 			}
 		}
 
-	def runSparc(self, request):
-		chemical = request.POST.get('chemical')
-		prop = request.POST.get('prop')
-		ph = request.POST.get('ph')
-		run_type = request.POST.get('run_type')
-
-		# get molecular info and append to inputs object:
-		# mol_info_response = json.loads(getChemicalEditorData(request).content)
-
-		pchem_data = sparc_views.request_manager(request).content
-
-		_response = self.meta_info
-		_response.update({'data': json.loads(pchem_data)})
-
-		return HttpResponse(json.dumps(_response), content_type="application/json")
-
 
 class Measured_CTS_REST(CTS_REST):
 	"""
@@ -582,22 +557,6 @@ class Measured_CTS_REST(CTS_REST):
 			}
 		}
 
-	def runMeasured(self, request):
-		chemical = request.POST.get('chemical')
-		prop = request.POST.get('prop')
-		ph = request.POST.get('ph')
-		run_type = request.POST.get('run_type')
-
-		# get molecular info and append to inputs object:
-		# mol_info_response = json.loads(getChemicalEditorData(request).content)
-
-		pchem_data = measured_views.request_manager(request).content
-
-		_response = self.meta_info
-		_response.update({'data': json.loads(pchem_data)})
-
-		return HttpResponse(json.dumps(_response), content_type="application/json")
-
 
 class Metabolizer_CTS_REST(CTS_REST):
 	"""
@@ -625,22 +584,6 @@ class Metabolizer_CTS_REST(CTS_REST):
 			'transformationLibraries': ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
 		}
 
-	def runMetabolizer(self, request):
-		chemical = request.POST.get('chemical')
-		prop = request.POST.get('prop')
-		ph = request.POST.get('ph')
-		run_type = request.POST.get('run_type')
-
-		# get molecular info and append to inputs object:
-		# mol_info_response = json.loads(getChemicalEditorData(request).content)
-
-		pchem_data = measured_views.request_manager(request).content
-
-		_response = self.meta_info
-		_response.update({'data': json.loads(pchem_data)})
-
-		return HttpResponse(json.dumps(_response), content_type="application/json")
-
 
 def showSwaggerPage(request):
 	"""
@@ -652,7 +595,7 @@ def showSwaggerPage(request):
 
 def getChemicalEditorData(request):
 	"""
-	Makes call to jchem_rest for chemaxon
+	Makes call to Calculator for chemaxon
 	data. Converts incoming structure to smiles,
 	then filters smiles, and then retrieves data
 	:param request:
@@ -676,14 +619,17 @@ def getChemicalEditorData(request):
 		chemical = request_post.get('chemical')
 		get_sd = request_post.get('get_structure_data')  # bool for getting <cml> format image for marvin sketch
 
-		response = jchem_rest.convertToSMILES({'chemical': chemical})
+		response = Calculator().convertToSMILES({'chemical': chemical})
 
 		orig_smiles = response['structure']
-		filtered_smiles = filterSMILES(orig_smiles)  # call CTS REST SMILES filter
+		# filtered_smiles = filterSMILES(orig_smiles)  # call CTS REST SMILES filter
+		# filtered_smiles_resonse = smilesfilter.filterSMILES({'smiles': orig_smiles})
+		filtered_smiles_response = smilesfilter.filterSMILES(orig_smiles)
+		filtered_smiles = filtered_smiles_response['results'][-1]
 
 		logging.warning("Filtered SMILES: {}".format(filtered_smiles))
 
-		jchem_response = jchem_rest.getChemDetails({'chemical': filtered_smiles})  # get chemical details
+		jchem_response = Calculator().getChemDetails({'chemical': filtered_smiles})  # get chemical details
 
 		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response, get_sd)
 
@@ -741,20 +687,6 @@ def getChemicalSpeciationData(request):
 	except Exception as error:
 		logging.warning("Error in cts_rest, getChemicalSpecation(): {}".format(error))
 		return HttpResponse("Error getting speciation data")
-
-
-def booleanize(value):
-	"""
-    django checkbox comes back as 'on' or 'off',
-    or True/False depending on version, so this
-    makes sure they're True/False
-    """
-	if value == 'on' or value == 'true':
-		return True
-	if value == 'off' or value == 'false':
-		return False
-	if isinstance(value, bool):
-		return value
 
 
 def gen_jid():
