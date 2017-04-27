@@ -252,6 +252,18 @@ class CTS_REST(object):
 			return getChemicalSpeciationData(request_dict)
 
 		else:
+
+			try:
+				_orig_smiles = request_dict.get('chemical')
+				_filtered_smiles = smilesfilter.filterSMILES(_orig_smiles)['results'][-1]
+				request_dict.update({
+					'orig_smiles': _orig_smiles,
+					'chemical': _filtered_smiles,
+				})
+			except Exception as e:
+				logging.warning("exception in cts_rest.py runCalc: {}".format(e))
+				logging.warning("skipping SMILES filter..")
+
 			pchem_data = {}
 			if calc == 'chemaxon':
 				pchem_data = JchemCalc().data_request_handler(request_dict)
@@ -655,6 +667,9 @@ def getChemicalSpeciationData(request):
 	try:
 
 		logging.info("Incoming request for speciation data: {}".format(request.POST))
+
+		filtered_smiles_response = smilesfilter.filterSMILES(request.get('chemical'))
+		filtered_smiles = filtered_smiles_response['results'][-1]
 
 		chemspec_obj = chemspec_output.chemspecOutputPage(request)
 
