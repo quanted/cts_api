@@ -41,6 +41,7 @@ class Molecule(object):
 		self.smiles = ''  # post filtered smiles 
 		self.formula = ''
 		self.iupac = ''
+		self.cas = ''
 		self.mass = ''
 		self.structureData = ''
 		self.exactMass = ''
@@ -65,6 +66,12 @@ class Molecule(object):
 					logging.warning("elif key: {}".format(key))
 					if key == 'structureData' and get_structure_data == None:
 						pass
+					elif key == 'cas':
+						# check if object with 'error' key instead of string of CAS#..
+						if isinstance(chem_details_response['data'][0][key], dict):
+							self.__setattr__(key, "N/A")
+						else:
+							self.__setattr__(key, chem_details_response['data'][0][key])	
 					else:
 						self.__setattr__(key, chem_details_response['data'][0][key])
 			# set cts attrs:
