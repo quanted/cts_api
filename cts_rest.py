@@ -662,7 +662,7 @@ def getChemicalEditorData(request):
 # class Metabolite(Molecule):
 
 
-def getChemicalSpeciationData(request):
+def getChemicalSpeciationData(request_dict):
 	"""
 	CTS web service endpoint for getting
 	chemical speciation data through  the
@@ -673,12 +673,18 @@ def getChemicalSpeciationData(request):
 
 	try:
 
-		logging.info("Incoming request for speciation data: {}".format(request.POST))
+		logging.info("Incoming request for speciation data: {}".format(request_dict))
 
-		filtered_smiles_response = smilesfilter.filterSMILES(request.get('chemical'))
+		filtered_smiles_response = smilesfilter.filterSMILES(request_dict.get('chemical'))
 		filtered_smiles = filtered_smiles_response['results'][-1]
+		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
+		request_dict['chemical'] = filtered_smiles
 
-		chemspec_obj = chemspec_output.chemspecOutputPage(request)
+		django_request = HttpResponse()
+		django_request.POST = request_dict
+		django_request.method = 'POST'
+
+		chemspec_obj = chemspec_output.chemspecOutputPage(django_request)
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
