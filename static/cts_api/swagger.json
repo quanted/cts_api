@@ -113,7 +113,7 @@
                         "description": "Outputs for ChemAxon p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunInputs"
+                            "$ref": "#/definitions/RunChemaxonInputs"
                         }
                     }
                 ],
@@ -238,7 +238,7 @@
                         "description": "Outputs for EPI Suite p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunInputs"
+                            "$ref": "#/definitions/RunEpiInputs"
                         }
                     }
                 ],
@@ -329,7 +329,7 @@
                         "description": "Outputs for TEST p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunInputs"
+                            "$ref": "#/definitions/RunTestInputs"
                         }
                     }
                 ],
@@ -420,7 +420,7 @@
                         "description": "Outputs for SPARC p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunInputs"
+                            "$ref": "#/definitions/RunSparcInputs"
                         }
                     }
                 ],
@@ -511,7 +511,7 @@
                         "description": "Outputs for Measured p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunInputs"
+                            "$ref": "#/definitions/RunMeasuredInputs"
                         }
                     }
                 ],
@@ -997,19 +997,88 @@
                 }
             }
         },
-        "RunInputs": {
+        "RunChemaxonInputs": {
             "type": "object",
             "properties": {
                 "chemical": {
                     "type": "string",
                     "default": "CCC"
                 },
-                "run_type": {
+                "calc": {
                     "type": "string",
-                    "default": "rest"
+                    "default": "chemaxon",
+                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                },
+                "prop": {
+                    "type": "string",
+                    "default": "water_sol"
+                }
+            }
+        },
+        "RunSparcInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCC"
                 },
                 "calc": {
                     "type": "string",
+                    "default": "sparc",
+                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                },
+                "prop": {
+                    "type": "string",
+                    "default": "water_sol"
+                }
+            }
+        },
+        "RunTestInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCC"
+                },
+                "calc": {
+                    "type": "string",
+                    "default": "test",
+                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                },
+                "prop": {
+                    "type": "string",
+                    "default": "water_sol"
+                }
+            }
+        },
+        "RunMeasuredInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCC"
+                },
+                "calc": {
+                    "type": "string",
+                    "default": "measured",
+                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                },
+                "prop": {
+                    "type": "string",
+                    "default": "water_sol"
+                }
+            }
+        },
+        "RunEpiInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCC"
+                },
+                "calc": {
+                    "type": "string",
+                    "deafult": "epi",
                     "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
                 },
                 "prop": {
