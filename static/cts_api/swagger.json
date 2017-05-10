@@ -1078,7 +1078,7 @@
                 },
                 "calc": {
                     "type": "string",
-                    "deafult": "epi",
+                    "default": "epi",
                     "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
                 },
                 "prop": {
