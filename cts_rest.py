@@ -621,6 +621,7 @@ def getChemicalEditorData(request):
 		# chemical = request.POST.get('chemical')
 		chemical = request_post.get('chemical')
 		get_sd = request_post.get('get_structure_data')  # bool for getting <cml> format image for marvin sketch
+		is_node = request_post.get('is_node')  # bool for tree node or not
 
 		response = Calculator().convertToSMILES({'chemical': chemical})
 
@@ -636,12 +637,24 @@ def getChemicalEditorData(request):
 
 		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response, get_sd)
 
+		if is_node:
+			molecule_obj.update({'node_image': Calculator().nodeWrapper(filtered_smiles, MetabolizerCalc().tree_image_height, MetabolizerCalc().tree_image_width, MetabolizerCalc().image_scale, MetabolizerCalc().metID,'svg', True)})
+			molecule_obj.update({
+				'popup_image': Calculator().popupBuilder(
+					{"smiles": filtered_smiles}, 
+					MetabolizerCalc().metabolite_keys, 
+					"{}".format(request_post.get('id')),
+					"Metabolite Information")
+			})
+
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
 			'data': molecule_obj,
 			'request_post': request_post
 		}
 		json_data = json.dumps(wrapped_post)
+
+		logging.warning("Returning Chemical Info: {}".format(json_data))
 
 		return HttpResponse(json_data, content_type='application/json')
 
