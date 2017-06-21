@@ -6,7 +6,6 @@
         "version": "1.0.0"
     },
     "schemes": [
-        "https",
         "http"
     ],
     "basePath": "/cts/rest",
@@ -752,7 +751,7 @@
             "type": "object",
             "properties": {
                 "chemical": {
-                    "type": "string",
+                    "type": "object",
                     "default": "CCCC",
                     "description": "Chemical to get p-chem data for, can be in smiles, iupac, formula, or name (e.g., aspirin) format"
                 },
@@ -1001,7 +1000,7 @@
             "type": "object",
             "properties": {
                 "chemical": {
-                    "type": "string",
+                    "type": "object",
                     "default": "CCC"
                 },
                 "calc": {
