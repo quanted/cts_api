@@ -14,15 +14,15 @@ from django.http import HttpResponse, HttpRequest
 from django.template.loader import render_to_string
 from django.shortcuts import render_to_response
 
-from cts_app.cts_calcs.calculator_chemaxon import JchemCalc
-from cts_app.cts_calcs.calculator_epi import EpiCalc
-from cts_app.cts_calcs.calculator_measured import MeasuredCalc
-from cts_app.cts_calcs.calculator_test import TestCalc
-from cts_app.cts_calcs.calculator_sparc import SparcCalc
-from cts_app.cts_calcs.calculator_metabolizer import MetabolizerCalc
-from cts_app.models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
-from cts_app.cts_calcs.calculator import Calculator
-from cts_app.cts_calcs import smilesfilter
+from ..cts_calcs.calculator_chemaxon import JchemCalc
+from ..cts_calcs.calculator_epi import EpiCalc
+from ..cts_calcs.calculator_measured import MeasuredCalc
+from ..cts_calcs.calculator_test import TestCalc
+from ..cts_calcs.calculator_sparc import SparcCalc
+from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
+from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
+from ..cts_calcs.calculator import Calculator
+from ..cts_calcs import smilesfilter
 
 
 

@@ -2,8 +2,8 @@
 from django.conf.urls import url
 # from django.contrib import admin
 # admin.autodiscover()
-from cts_app.cts_api import cts_rest
-from cts_app.cts_api import views
+from . import cts_rest
+from . import views
 
 
 # All view functions here must be in '/views/views.py'
