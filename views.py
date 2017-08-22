@@ -4,6 +4,7 @@ CTS REST URLs - Swagger UI
 """
 
 from cts_app.cts_api import cts_rest
+from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpRequest, HttpResponse
 import json
 from django.conf import settings
@@ -14,6 +15,8 @@ root_path = os.path.abspath(os.path.dirname(__file__))
 
 logging.warning("project root {}".format(root_path))
 
+
+@csrf_exempt
 def getSwaggerJsonContent(request):
 	"""
 	Opens up swagger.json content
@@ -26,6 +29,7 @@ def getSwaggerJsonContent(request):
 	return response
 
 
+@csrf_exempt
 def getCTSEndpoints(request):
 	"""
 	CTS REST calculator endpoints
@@ -34,6 +38,7 @@ def getCTSEndpoints(request):
 	return cts_obj.getCTSREST()
 
 
+@csrf_exempt
 def getCalcEndpoints(request, endpoint=None):
 
 	cts_obj = cts_rest.CTS_REST()
@@ -44,6 +49,7 @@ def getCalcEndpoints(request, endpoint=None):
 		return cts_rest.CTS_REST().getCalcEndpoints(endpoint)
 
 
+@csrf_exempt
 def getCalcInputs(request, calc=None):
 
 	request_params = json.loads(request.body)
@@ -62,6 +68,7 @@ def getCalcInputs(request, calc=None):
 		return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')
 
 
+@csrf_exempt
 def runCalc(request, calc=None):
 
 	try:
