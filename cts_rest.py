@@ -232,6 +232,8 @@ class CTS_REST(object):
 			structure = request_dict.get('structure')
 			gen_limit = request_dict.get('generationLimit')
 			trans_libs = request_dict.get('transformationLibraries')
+
+			# TODO: Add transformationLibraries key:val logic
 			metabolizer_request = {
 				'structure': structure,
 				'generationLimit': gen_limit,
@@ -248,7 +250,7 @@ class CTS_REST(object):
 				raise
 
 			_progeny_tree = MetabolizerCalc().recursive(response, int(gen_limit))
-			_response.update({'data': _progeny_tree})
+			_response.update({'data': json.loads(_progeny_tree)})
 
 		elif calc == 'speciation':
 			# response = getChemicalSpeciationData(request)
