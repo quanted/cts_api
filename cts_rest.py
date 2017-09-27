@@ -246,6 +246,12 @@ class CTS_REST(object):
 				'excludeCondition': ""  # 'generateImages': False
 			}
 
+
+			# metabolizerList = ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
+			# NOTE: Only adding 'transformationLibraries' key:val if hydrolysis and/or reduction selected, but not mammalian metabolism
+			if len(trans_libs) > 0 and not 'human_biotransformation' in trans_libs:
+				metabolizer_request.update({'transformationLibraries': trans_libs})
+
 			try:
 				response = MetabolizerCalc().getTransProducts(metabolizer_request)
 			except Exception as e:
