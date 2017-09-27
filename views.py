@@ -6,6 +6,7 @@ CTS REST URLs - Swagger UI
 from cts_app.cts_api import cts_rest
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpRequest, HttpResponse
+from django.template.loader import render_to_string
 import json
 from django.conf import settings
 import logging
@@ -86,3 +87,44 @@ def runCalc(request, calc=None):
 		logging.warning("~~~ exception occurring at cts_api views runCalc!")
 		logging.warning("exception: {}".format(e))
 		return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')
+
+
+@csrf_exempt
+def test_ws_page(request):
+	"""
+	TEST WS testing page at /cts/rest/testws
+	"""
+
+	#drupal template for header with bluestripe
+	#html = render_to_string('01epa_drupal_header.html', {})
+	html = render_to_string('01epa_drupal_header.html', {
+		'SITE_SKIN': os.environ['SITE_SKIN'],
+		'title': "CTS"
+	})
+
+	html += render_to_string('02epa_drupal_header_bluestripe_onesidebar.html', {})
+	html += render_to_string('03epa_drupal_section_title_cts.html', {})
+
+	html += render_to_string('06cts_ubertext_start_index_drupal.html', {
+		# 'TITLE': 'Calculate Chemical Speciation',
+		# 'TEXT_PARAGRAPH': xx
+	})
+
+	# inputPageFunc = getattr(inputmodule, model+'InputPage')  # function name = 'model'InputPage  (e.g. 'sipInputPage')
+	# html += inputPageFunc(request, model, header)
+	html += render_to_string('cts_testws_page.html', {})
+
+	html += render_to_string('07ubertext_end_drupal.html', {})
+	# html += ordered_list(model='cts/' + model, page='input')
+
+	#scripts and footer
+	html += render_to_string('09epa_drupal_ubertool_css.html', {})
+	html += render_to_string('09epa_drupal_cts_css.html')
+
+	# sending request to template with scripts_jchem added (will this work if template imports js and isn't in template itself?)
+	html += render_to_string('09epa_drupal_cts_scripts.html', request=request)
+	html += render_to_string('10epa_drupal_footer.html', {})
+  
+	response = HttpResponse()
+	response.write(html)
+	return response
