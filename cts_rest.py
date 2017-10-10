@@ -18,6 +18,7 @@ from ..cts_calcs.calculator_chemaxon import JchemCalc
 from ..cts_calcs.calculator_epi import EpiCalc
 from ..cts_calcs.calculator_measured import MeasuredCalc
 from ..cts_calcs.calculator_test import TestCalc
+from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
@@ -169,6 +170,8 @@ class CTS_REST(object):
 			return EPI_CTS_REST()
 		elif calc == 'test':
 			return TEST_CTS_REST()
+		elif calc == 'testws':
+			return TEST_CTS_REST()
 		elif calc == 'sparc':
 			return SPARC_CTS_REST()
 		elif calc == 'measured':
@@ -269,8 +272,22 @@ class CTS_REST(object):
 		else:
 
 			try:
+
+				logging.warning("REQUEST DICT TYPE: {}".format(type(request_dict)))
+
 				_orig_smiles = request_dict.get('chemical')
+				logging.info("ORIG SMILES: {}".format(_orig_smiles))
 				_filtered_smiles = smilesfilter.filterSMILES(_orig_smiles)['results'][-1]
+				request_dict.update({
+					'orig_smiles': _orig_smiles,
+					'chemical': _filtered_smiles,
+				})
+			except AttributeError as ae:
+				# POST type is django QueryDict (most likely)
+				request_dict = dict(request_dict)  # convert QueryDict to dict
+				for key, val in request_dict.items():
+					request_dict.update({key: val[0]})  # vals of QueryDict are lists of 1 item
+
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
 					'chemical': _filtered_smiles,
@@ -287,6 +304,8 @@ class CTS_REST(object):
 				pchem_data = EpiCalc().data_request_handler(request_dict)
 			elif calc == 'test':
 				pchem_data = TestCalc().data_request_handler(request_dict)
+			elif calc == 'testws':
+				pchem_data = TestWSCalc().data_request_handler(request_dict)
 			elif calc == 'sparc':
 				pchem_data = SparcCalc().data_request_handler(request_dict)
 			elif calc == 'measured':

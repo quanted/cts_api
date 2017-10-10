@@ -6,6 +6,7 @@ CTS REST URLs - Swagger UI
 from cts_app.cts_api import cts_rest
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpRequest, HttpResponse
+from django.template.loader import render_to_string
 import json
 from django.conf import settings
 import logging
@@ -72,13 +73,19 @@ def getCalcInputs(request, calc=None):
 def runCalc(request, calc=None):
 
 	try:
-		request_params = json.loads(request.body)
-	except ValueError as te:
-		request_params = request.POST
-
-	# calc_request = HttpRequest()
-	# calc_request.POST = request_params
-	# calc_request.method = 'POST'
+		request_body = request.body
+		request_params = json.loads(request_body)
+	except ValueError as ve:
+		# swagger api issue with not encoding backslash in smiles properly
+		logging.warning("trouble converting request body to json obj, checking for backslashes in smiles..")
+		request_string = str(request_body, 'utf-8')
+		if '\\' in request_string:
+			logging.warning("backslash found, temporarily replacing with '_', parsing, then re-replacing..")
+			request_string = request_string.replace('\\', '_')  # temp replace backslash for json parse
+			request_params = json.loads(request_string)
+			request_params['chemical'] = request_params['chemical'].replace('_', '\\')  # put backslash back
+		else:
+			request_params = request.POST
 
 	try:
 		return cts_rest.CTS_REST().runCalc(calc, request_params)
