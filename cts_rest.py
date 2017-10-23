@@ -650,11 +650,85 @@ def getChemicalEditorData(request):
 		get_sd = request_post.get('get_structure_data')  # bool for getting <cml> format image for marvin sketch
 		is_node = request_post.get('is_node')  # bool for tree node or not
 
-		response = Calculator().convertToSMILES({'chemical': chemical})
 
-		orig_smiles = response['structure']
-		# filtered_smiles = filterSMILES(orig_smiles)  # call CTS REST SMILES filter
-		# filtered_smiles_resonse = smilesfilter.filterSMILES({'smiles': orig_smiles})
+		# Updated cheminfo workflow with actorws:
+		###########################################################################################
+		# 1. Determine if user's chemical is smiles, cas, or drawn
+		# 		a. If smiles, get gsid from actorws chemicalIdentifier endpoint
+		#		b. If cas, get chem data from actorws dsstox endpoint
+		#		c. If drawn, get smiles from chemaxon, then gsid like in a.
+		# 2. Check if request from 1. "matched" (exist?)
+		#		a. If 1b returns cas result, get cheminfo from dsstox results
+		#		b. If 1a or 1c, use gsid from chemicalIdentifier and perform step 1b for dsstox cheminfo
+		# 3. Use dsstox results: curated CAS#, SMILES, preferredName, iupac, and dtxsid
+		#		a. Display in chemical editor.
+		#############################################################################################
+
+
+		actorws = smilesfilter.ACTORWS()  # start w/ actorws instance from smilesfilter module
+		calc = Calculator()  # calculator class instance
+
+		# 1. Determine chemical type from user (e.g., smiles, cas, name, etc.):
+		chem_type = Calculator().getChemicalType(chemical)
+
+		logging.info("chem type: {}".format(chem_type))
+
+		_gsid = None
+		_jchem_smiles = None
+		_name_or_smiles = chem_type['type'] == 'name' or chem_type['type'] == 'smiles'
+		_actor_results = {}  # final key:vals from actorws: smiles, iupac, preferredName, dsstoxSubstanceId, casrn
+
+		# Checking type for next step:
+		if chem_type['type'] == 'mrv':
+			logging.info("Getting SMILES from jchem web services..")
+			response = calc.convertToSMILES({'chemical': chemical})
+			_jchem_smiles = response['structure']
+			logging.info("SMILES of drawn chemical: {}".format(_jchem_smiles))
+
+		if _name_or_smiles or _jchem_smiles:
+			logging.info("Getting gsid from actorws chemicalIdentifier..")
+			chemid_results = actorws.get_chemid_results(chemical)  # obj w/ keys calc, prop, data
+			_gsid = chemid_results['data']['gsid']
+			logging.info("gsid from actorws chemid: {}".format(_gsid))
+			_actor_results['gsid'] = _gsid
+
+			# I think this is where a check needs to be for whether obtaining
+			# gsid was successful. If not, get chem info from chemaxon like usual
+
+
+		# Should be CAS# or have gsid from chemid by this point..
+		if _gsid or chem_type['type'] == 'CAS#':
+			id_type = 'CAS#'
+			if _gsid:
+				chem_id = _gsid
+				id_type = 'gsid'
+			logging.info("Getting results from actorws dsstox..")
+			dsstox_results = actorws.get_dsstox_results(chem_id, id_type)  # keys: smiles, iupac, preferredName, dsstoxSubstanceId, casrn 
+			_actor_results.update(dsstox_results)
+
+			# TODO: The "matching?" part again. Just check if results were successful??
+
+		# ?: Are the iupac, smiles, casrn used from actorws if available, and
+		# if they're not then using just the values from chemaxon?
+		# Also, are the additional cells in Chemical Editor that are for actorws
+		# values going to be "N/A" if using chemaxon for chem info?
+
+		# Need to figure out orig_smiles for smiles filter:
+		# If user enters something other than SMILES, use actorws smiles for orig_smiles
+		orig_smiles = ""
+		if chem_type['type'] == 'smiles':
+			orig_smiles = chemical  # use user-entered smiles as orig_siles
+		elif 'smiles' in _actor_results:
+			orig_smiles = _actor_results['smiles']  # use actorws smiles as orig_smiles
+		else:
+			logging.info("smiles not in user request or actorws results, getting from jchem ws..")
+			orig_smiles = calc.convertToSMILES({'chemical': chemical}).get('structure')
+
+		# response = Calculator().convertToSMILES({'chemical': chemical})
+		# orig_smiles = response['structure']
+
+		logging.info("original smiles before cts filtering: {}".format(orig_smiles))
+
 		filtered_smiles_response = smilesfilter.filterSMILES(orig_smiles)
 		filtered_smiles = filtered_smiles_response['results'][-1]
 
@@ -663,6 +737,16 @@ def getChemicalEditorData(request):
 		jchem_response = Calculator().getChemDetails({'chemical': filtered_smiles})  # get chemical details
 
 		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response, get_sd)
+
+		# Loop _actor_results, replace certain keys in molecule_obj with actorws vals:
+		for key, val in _actor_results['data'].items():
+			# if key in molecule_obj:
+			if key == 'casrn':
+				molecule_obj['cas'] = val
+			else:
+				molecule_obj[key] = val  # replace or add any values from chemaxon deat
+			# elif key in ['preferredName', 'dsstoxSubstanceId', 'casrn']:
+			# 	molecule_obj[key] = val
 
 		if is_node:
 			molecule_obj.update({'node_image': Calculator().nodeWrapper(filtered_smiles, MetabolizerCalc().tree_image_height, MetabolizerCalc().tree_image_width, MetabolizerCalc().image_scale, MetabolizerCalc().metID,'svg', True)})
