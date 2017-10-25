@@ -310,6 +310,12 @@ class CTS_REST(object):
 				pchem_data = SparcCalc().data_request_handler(request_dict)
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
+				# with updated measured, have to pick out desired prop:
+				for data_obj in pchem_data.get('data'):
+					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
+					if data_obj['prop'] == measured_prop_name:
+						pchem_data['data'] = data_obj['data'] # only want request prop
+						pchem_data['prop'] = request_dict['prop']  # use cts prop name
 			
 			_response.update({'data': pchem_data})
 
