@@ -52,17 +52,9 @@ class Molecule(object):
 		Gets Molecule attributes from Calculator's getChemDetails response
 		"""
 
-		logging.warning("STRUCTURE DATA: {}".format(get_structure_data))
-
 		try:
 			# set attrs from jchem data:
 			for key in self.__dict__.keys():
-				# if key == 'structureData' and structureData:
-				# 	self.__setattr__(key, chem_details_response['data'][0])
-
-				# get_sd = key == 'structureData' and get_structure_data != None
-				# logging.warning("KEY: {}, BOOL: {}".format(key, get_sd))
-
 				if key != 'orig_smiles' and key != 'chemical':
 					logging.warning("elif key: {}".format(key))
 					if key == 'structureData' and get_structure_data == None:
@@ -746,13 +738,10 @@ def getChemicalEditorData(request):
 
 		# Loop _actor_results, replace certain keys in molecule_obj with actorws vals:
 		for key, val in _actor_results['data'].items():
-			# if key in molecule_obj:
 			if key == 'casrn':
 				molecule_obj['cas'] = val
 			else:
 				molecule_obj[key] = val  # replace or add any values from chemaxon deat
-			# elif key in ['preferredName', 'dsstoxSubstanceId', 'casrn']:
-			# 	molecule_obj[key] = val
 
 		if is_node:
 			molecule_obj.update({'node_image': Calculator().nodeWrapper(filtered_smiles, MetabolizerCalc().tree_image_height, MetabolizerCalc().tree_image_width, MetabolizerCalc().image_scale, MetabolizerCalc().metID,'svg', True)})
@@ -787,9 +776,6 @@ def getChemicalEditorData(request):
 		logging.warning(error)
 		wrapped_post = {'status': False, 'error': error}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
-
-
-# class Metabolite(Molecule):
 
 
 def getChemicalSpeciationData(request_dict):
