@@ -23,65 +23,10 @@ from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
-from ..cts_calcs import smilesfilter
+from ..cts_calcs.chemical_information import SMILESFilter
+from ..cts_calcs.chemical_information import ChemInfo
 
 
-
-# TODO: Consider putting these classes somewhere else, maybe even the *_models.py files!
-class Molecule(object):
-	"""
-	Basic molecule object for CTS
-	"""
-	def __init__(self):
-
-		# cts keys:
-		self.chemical = ''  # initial structure from user (any chemaxon format)
-		self.orig_smiles = ''  # before filtering, converted to smiles
-
-		# chemaxon/jchem keys:
-		self.smiles = ''  # post filtered smiles 
-		self.formula = ''
-		self.iupac = ''
-		self.cas = ''
-		self.mass = ''
-		self.structureData = ''
-		self.exactMass = ''
-
-	def createMolecule(self, chemical, orig_smiles, chem_details_response, get_structure_data=None):
-		"""
-		Gets Molecule attributes from Calculator's getChemDetails response
-		"""
-
-		logging.warning("STRUCTURE DATA: {}".format(get_structure_data))
-
-		try:
-			# set attrs from jchem data:
-			for key in self.__dict__.keys():
-				# if key == 'structureData' and structureData:
-				# 	self.__setattr__(key, chem_details_response['data'][0])
-
-				# get_sd = key == 'structureData' and get_structure_data != None
-				# logging.warning("KEY: {}, BOOL: {}".format(key, get_sd))
-
-				if key != 'orig_smiles' and key != 'chemical':
-					logging.warning("elif key: {}".format(key))
-					if key == 'structureData' and get_structure_data == None:
-						pass
-					elif key == 'cas':
-						# check if object with 'error' key instead of string of CAS#..
-						if isinstance(chem_details_response['data'][0][key], dict):
-							self.__setattr__(key, "N/A")
-						else:
-							self.__setattr__(key, chem_details_response['data'][0][key])	
-					else:
-						self.__setattr__(key, chem_details_response['data'][0][key])
-			# set cts attrs:
-			self.__setattr__('chemical', chemical)
-			self.__setattr__('orig_smiles', orig_smiles)
-
-			return self.__dict__
-		except KeyError as err:
-			raise err
 
 
 class CTS_REST(object):
@@ -262,11 +207,7 @@ class CTS_REST(object):
 			_response.update({'data': json.loads(_progeny_tree)})
 
 		elif calc == 'speciation':
-			# response = getChemicalSpeciationData(request)
-			# _response.update({'data': json.loads(response.content)})
-
 			logging.info("CTS REST - speciation")
-
 			return getChemicalSpeciationData(request_dict)
 
 		else:
@@ -277,7 +218,7 @@ class CTS_REST(object):
 
 				_orig_smiles = request_dict.get('chemical')
 				logging.info("ORIG SMILES: {}".format(_orig_smiles))
-				_filtered_smiles = smilesfilter.filterSMILES(_orig_smiles)['results'][-1]
+				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)['results'][-1]
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
 					'chemical': _filtered_smiles,
@@ -310,6 +251,12 @@ class CTS_REST(object):
 				pchem_data = SparcCalc().data_request_handler(request_dict)
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
+				# with updated measured, have to pick out desired prop:
+				for data_obj in pchem_data.get('data'):
+					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
+					if data_obj['prop'] == measured_prop_name:
+						pchem_data['data'] = data_obj['data'] # only want request prop
+						pchem_data['prop'] = request_dict['prop']  # use cts prop name
 			
 			_response.update({'data': pchem_data})
 
@@ -638,132 +585,14 @@ def getChemicalEditorData(request):
 	try:
 
 		if 'message' in request.POST:
-			# receiving request from cts_stress node server..
+			# Receiving request from cts_stress node server..
 			# todo: should generalize and not have conditional
 			request_post = json.loads(request.POST.get('message'))
 		else:
 			request_post = request.POST
 
-
-		# chemical = request.POST.get('chemical')
-		chemical = request_post.get('chemical')
-		get_sd = request_post.get('get_structure_data')  # bool for getting <cml> format image for marvin sketch
-		is_node = request_post.get('is_node')  # bool for tree node or not
-
-
-		# Updated cheminfo workflow with actorws:
-		###########################################################################################
-		# 1. Determine if user's chemical is smiles, cas, or drawn
-		# 		a. If smiles, get gsid from actorws chemicalIdentifier endpoint
-		#		b. If cas, get chem data from actorws dsstox endpoint
-		#		c. If drawn, get smiles from chemaxon, then gsid like in a.
-		# 2. Check if request from 1. "matched" (exist?)
-		#		a. If 1b returns cas result, get cheminfo from dsstox results
-		#		b. If 1a or 1c, use gsid from chemicalIdentifier and perform step 1b for dsstox cheminfo
-		# 3. Use dsstox results: curated CAS#, SMILES, preferredName, iupac, and dtxsid
-		#		a. Display in chemical editor.
-		#############################################################################################
-
-
-		actorws = smilesfilter.ACTORWS()  # start w/ actorws instance from smilesfilter module
-		calc = Calculator()  # calculator class instance
-
-		# 1. Determine chemical type from user (e.g., smiles, cas, name, etc.):
-		chem_type = Calculator().getChemicalType(chemical)
-
-		logging.info("chem type: {}".format(chem_type))
-
-		_gsid = None
-		_jchem_smiles = None
-		_name_or_smiles = chem_type['type'] == 'name' or chem_type['type'] == 'smiles'
-		_actor_results = {}  # final key:vals from actorws: smiles, iupac, preferredName, dsstoxSubstanceId, casrn
-
-		# Checking type for next step:
-		if chem_type['type'] == 'mrv':
-			logging.info("Getting SMILES from jchem web services..")
-			response = calc.convertToSMILES({'chemical': chemical})
-			_jchem_smiles = response['structure']
-			logging.info("SMILES of drawn chemical: {}".format(_jchem_smiles))
-
-		if _name_or_smiles or _jchem_smiles:
-			logging.info("Getting gsid from actorws chemicalIdentifier..")
-			chemid_results = actorws.get_chemid_results(chemical)  # obj w/ keys calc, prop, data
-			_gsid = chemid_results['data']['gsid']
-			logging.info("gsid from actorws chemid: {}".format(_gsid))
-			_actor_results['gsid'] = _gsid
-
-			# I think this is where a check needs to be for whether obtaining
-			# gsid was successful. If not, get chem info from chemaxon like usual
-
-
-		# Should be CAS# or have gsid from chemid by this point..
-		if _gsid or chem_type['type'] == 'CAS#':
-			id_type = 'CAS#'
-			if _gsid:
-				chem_id = _gsid
-				id_type = 'gsid'
-			logging.info("Getting results from actorws dsstox..")
-			dsstox_results = actorws.get_dsstox_results(chem_id, id_type)  # keys: smiles, iupac, preferredName, dsstoxSubstanceId, casrn 
-			_actor_results.update(dsstox_results)
-
-			# TODO: The "matching?" part again. Just check if results were successful??
-
-		# ?: Are the iupac, smiles, casrn used from actorws if available, and
-		# if they're not then using just the values from chemaxon?
-		# Also, are the additional cells in Chemical Editor that are for actorws
-		# values going to be "N/A" if using chemaxon for chem info?
-
-		# Need to figure out orig_smiles for smiles filter:
-		# If user enters something other than SMILES, use actorws smiles for orig_smiles
-		orig_smiles = ""
-		if chem_type['type'] == 'smiles':
-			orig_smiles = chemical  # use user-entered smiles as orig_siles
-		elif 'smiles' in _actor_results:
-			orig_smiles = _actor_results['smiles']  # use actorws smiles as orig_smiles
-		else:
-			logging.info("smiles not in user request or actorws results, getting from jchem ws..")
-			orig_smiles = calc.convertToSMILES({'chemical': chemical}).get('structure')
-
-		# response = Calculator().convertToSMILES({'chemical': chemical})
-		# orig_smiles = response['structure']
-
-		logging.info("original smiles before cts filtering: {}".format(orig_smiles))
-
-		filtered_smiles_response = smilesfilter.filterSMILES(orig_smiles)
-		filtered_smiles = filtered_smiles_response['results'][-1]
-
-		logging.warning("Filtered SMILES: {}".format(filtered_smiles))
-
-		jchem_response = Calculator().getChemDetails({'chemical': filtered_smiles})  # get chemical details
-
-		molecule_obj = Molecule().createMolecule(chemical, orig_smiles, jchem_response, get_sd)
-
-		# Loop _actor_results, replace certain keys in molecule_obj with actorws vals:
-		for key, val in _actor_results['data'].items():
-			# if key in molecule_obj:
-			if key == 'casrn':
-				molecule_obj['cas'] = val
-			else:
-				molecule_obj[key] = val  # replace or add any values from chemaxon deat
-			# elif key in ['preferredName', 'dsstoxSubstanceId', 'casrn']:
-			# 	molecule_obj[key] = val
-
-		if is_node:
-			molecule_obj.update({'node_image': Calculator().nodeWrapper(filtered_smiles, MetabolizerCalc().tree_image_height, MetabolizerCalc().tree_image_width, MetabolizerCalc().image_scale, MetabolizerCalc().metID,'svg', True)})
-			molecule_obj.update({
-				'popup_image': Calculator().popupBuilder(
-					{"smiles": filtered_smiles}, 
-					MetabolizerCalc().metabolite_keys, 
-					"{}".format(request_post.get('id')),
-					"Metabolite Information")
-			})
-
-		wrapped_post = {
-			'status': True,  # 'metadata': '',
-			'data': molecule_obj,
-			'request_post': request_post
-		}
-		json_data = json.dumps(wrapped_post)
+		_cheminfo_results = ChemInfo().get_cheminfo(request_post)
+		json_data = json.dumps(_cheminfo_results)
 
 		logging.warning("Returning Chemical Info: {}".format(json_data))
 
@@ -783,9 +612,6 @@ def getChemicalEditorData(request):
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 
-# class Metabolite(Molecule):
-
-
 def getChemicalSpeciationData(request_dict):
 	"""
 	CTS web service endpoint for getting
@@ -799,7 +625,7 @@ def getChemicalSpeciationData(request_dict):
 
 		logging.info("Incoming request for speciation data: {}".format(request_dict))
 
-		filtered_smiles_response = smilesfilter.filterSMILES(request_dict.get('chemical'))
+		filtered_smiles_response = SMILESFilter().filterSMILES(request_dict.get('chemical'))
 		filtered_smiles = filtered_smiles_response['results'][-1]
 		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
 		request_dict['chemical'] = filtered_smiles
