@@ -218,7 +218,7 @@ class CTS_REST(object):
 
 				_orig_smiles = request_dict.get('chemical')
 				logging.info("ORIG SMILES: {}".format(_orig_smiles))
-				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)['results'][-1]
+				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
 					'chemical': _filtered_smiles,
@@ -243,6 +243,20 @@ class CTS_REST(object):
 				# logging.warning("PCHEM DATA: {}".format(pchem_data))
 			elif calc == 'epi':
 				pchem_data = EpiCalc().data_request_handler(request_dict)
+				# with updated epi, have to pick out desired prop:
+				_epi_water_sol = []  # water_sol will return two data objects for api
+				for data_obj in pchem_data.get('data'):
+					epi_prop_name = EpiCalc().propMap[request_dict['prop']]['result_key']
+					if data_obj['prop'] == epi_prop_name:
+						if request_dict['prop'] == 'water_sol':
+							_epi_water_sol.append(data_obj)
+						else:
+							pchem_data['data'] = data_obj['data'] # only want request prop
+						pchem_data['prop'] = request_dict['prop']  # use cts prop name
+				if len(_epi_water_sol) > 0:
+					# epi water solubility has two data objects..
+					pchem_data['data'] = _epi_water_sol
+
 			elif calc == 'test':
 				pchem_data = TestCalc().data_request_handler(request_dict)
 			elif calc == 'testws':
@@ -625,8 +639,7 @@ def getChemicalSpeciationData(request_dict):
 
 		logging.info("Incoming request for speciation data: {}".format(request_dict))
 
-		filtered_smiles_response = SMILESFilter().filterSMILES(request_dict.get('chemical'))
-		filtered_smiles = filtered_smiles_response['results'][-1]
+		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
 		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
 		request_dict['chemical'] = filtered_smiles
 
