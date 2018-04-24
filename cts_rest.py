@@ -626,9 +626,10 @@ def getChemicalEditorData(request):
 			'chemical': chemical
 		}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
+		
 	except Exception as error:
 		logging.warning(error)
-		wrapped_post = {'status': False, 'error': error}
+		wrapped_post = {'status': False, 'error': str(error)}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 
