@@ -244,6 +244,13 @@ class CTS_REST(object):
 			elif calc == 'epi':
 				_epi_calc = EpiCalc()
 				pchem_data = _epi_calc.data_request_handler(request_dict)
+
+				if not pchem_data.get('valid'):
+					logging.warning("{} request error: {}".format(calc, pchem_data))
+					_response_obj = {'error': pchem_data.get('data')}
+					_response_obj.update(request_dict)
+					return HttpResponse(json.dumps(_response_obj))
+
 				# with updated epi, have to pick out desired prop:
 				# _epi_water_sol = []  # water_sol will return two data objects for api
 				_methods_list = []
@@ -265,12 +272,22 @@ class CTS_REST(object):
 
 			elif calc == 'test':
 				pchem_data = TestCalc().data_request_handler(request_dict)
+
 			elif calc == 'testws':
 				pchem_data = TestWSCalc().data_request_handler(request_dict)
+
 			elif calc == 'sparc':
 				pchem_data = SparcCalc().data_request_handler(request_dict)
+				
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
+
+				if not pchem_data.get('valid'):
+					logging.warning("{} request error: {}".format(calc, pchem_data))
+					_response_obj = {'error': pchem_data.get('data')}
+					_response_obj.update(request_dict)
+					return HttpResponse(json.dumps(_response_obj))
+
 				# with updated measured, have to pick out desired prop:
 				for data_obj in pchem_data.get('data'):
 					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
