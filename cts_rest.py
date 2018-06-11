@@ -242,29 +242,52 @@ class CTS_REST(object):
 				pchem_data = JchemCalc().data_request_handler(request_dict)
 				# logging.warning("PCHEM DATA: {}".format(pchem_data))
 			elif calc == 'epi':
-				pchem_data = EpiCalc().data_request_handler(request_dict)
+				_epi_calc = EpiCalc()
+				pchem_data = _epi_calc.data_request_handler(request_dict)
+
+				if not pchem_data.get('valid'):
+					logging.warning("{} request error: {}".format(calc, pchem_data))
+					_response_obj = {'error': pchem_data.get('data')}
+					_response_obj.update(request_dict)
+					return HttpResponse(json.dumps(_response_obj))
+
 				# with updated epi, have to pick out desired prop:
-				_epi_water_sol = []  # water_sol will return two data objects for api
+				# _epi_water_sol = []  # water_sol will return two data objects for api
+				_methods_list = []
 				for data_obj in pchem_data.get('data'):
-					epi_prop_name = EpiCalc().propMap[request_dict['prop']]['result_key']
+					epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == epi_prop_name:
-						if request_dict['prop'] == 'water_sol':
-							_epi_water_sol.append(data_obj)
+						# if request_dict['prop'] == 'water_sol':
+						# 	_methods_list.append(data_obj)
+						if data_obj.get('method'):
+							_epi_methods = _epi_calc.propMap.get(request_dict['prop']).get('methods')
+							data_obj['method'] = _epi_methods.get(data_obj['method'])  # use pchem table name for method
+							_methods_list.append(data_obj)
 						else:
 							pchem_data['data'] = data_obj['data'] # only want request prop
 						pchem_data['prop'] = request_dict['prop']  # use cts prop name
-				if len(_epi_water_sol) > 0:
+				if len(_methods_list) > 0:
 					# epi water solubility has two data objects..
-					pchem_data['data'] = _epi_water_sol
+					pchem_data['data'] = _methods_list
 
 			elif calc == 'test':
 				pchem_data = TestCalc().data_request_handler(request_dict)
+
 			elif calc == 'testws':
 				pchem_data = TestWSCalc().data_request_handler(request_dict)
+
 			elif calc == 'sparc':
 				pchem_data = SparcCalc().data_request_handler(request_dict)
+				
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
+
+				if not pchem_data.get('valid'):
+					logging.warning("{} request error: {}".format(calc, pchem_data))
+					_response_obj = {'error': pchem_data.get('data')}
+					_response_obj.update(request_dict)
+					return HttpResponse(json.dumps(_response_obj))
+
 				# with updated measured, have to pick out desired prop:
 				for data_obj in pchem_data.get('data'):
 					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
@@ -620,9 +643,11 @@ def getChemicalEditorData(request):
 			'chemical': chemical
 		}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
+		
 	except Exception as error:
 		logging.warning(error)
-		wrapped_post = {'status': False, 'error': error}
+		# wrapped_post = {'status': False, 'error': str(error)}
+		wrapped_post = {'status': False, 'error': "Cannot validate chemical.."}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 

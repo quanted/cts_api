@@ -92,4 +92,4 @@ def runCalc(request, calc=None):
 	except Exception as e:
 		logging.warning("~~~ exception occurring at cts_api views runCalc!")
 		logging.warning("exception: {}".format(e))
-		return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')
+		return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
