@@ -396,7 +396,8 @@ class EPI_CTS_REST(CTS_REST):
 					},
 					{
 						'prop': 'koc',
-						'units': "L/kg",
+						# 'units': "L/kg",
+						'units': "log",
 						'description': "organic carbon partition coefficient"
 					}
 				]
