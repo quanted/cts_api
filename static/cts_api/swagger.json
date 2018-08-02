@@ -349,6 +349,97 @@
                 }
             }
         },
+        "/testws": {
+            "get": {
+                "summary": "TESTWS REST endpoints",
+                "description": "Returns endpoints for TESTWS calculator.\n",
+                "tags": [
+                    "test"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "TESTWS REST endpoints",
+                        "schema": {
+                            "$ref": "#/definitions/TESTWS"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/testws/inputs": {
+            "post": {
+                "summary": "TESTWS input schema",
+                "description": "This endpoint returns the inputs used to\nget estimated values from TESTWS.\n",
+                "tags": [
+                    "test"
+                ],
+                "parameters": [
+                    {
+                        "name": "inputs",
+                        "in": "body",
+                        "description": "Inputs for TESTWS p-chem property request.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CalcInputs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "test input schema",
+                        "schema": {
+                            "$ref": "#/definitions/TESTWSInputsResponse"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/testws/run": {
+            "post": {
+                "summary": "Run test calculator for p-chem data.",
+                "description": "This endpoint runs test and returns p-chem data\nfrom requested p-chem property.\n",
+                "tags": [
+                    "test"
+                ],
+                "parameters": [
+                    {
+                        "name": "inputs",
+                        "in": "body",
+                        "description": "Outputs for TESTWS p-chem property request.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RunTestInputs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Run test calculator for p-chem data.",
+                        "schema": {
+                            "$ref": "#/definitions/CalcOutputs"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
+        },
         "/sparc": {
             "get": {
                 "summary": "SPARC REST endpoints",
@@ -1043,6 +1134,24 @@
                 "calc": {
                     "type": "string",
                     "default": "test",
+                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                },
+                "prop": {
+                    "type": "string",
+                    "default": "water_sol"
+                }
+            }
+        },
+        "RunTestWsInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCC"
+                },
+                "calc": {
+                    "type": "string",
+                    "default": "testws",
                     "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
                 },
                 "prop": {
