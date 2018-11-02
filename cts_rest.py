@@ -648,7 +648,7 @@ def getChemicalEditorData(request):
 	except Exception as error:
 		logging.warning(error)
 		# wrapped_post = {'status': False, 'error': str(error)}
-		wrapped_post = {'status': False, 'error': "Cannot validate chemical.."}
+		wrapped_post = {'status': False, 'error': "Cannot validate chemical"}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 
