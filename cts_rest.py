@@ -641,7 +641,7 @@ def getChemicalEditorData(request):
 		wrapped_post = {
 			'status': False, 
 			'error': 'Error validating chemical',
-			'chemical': chemical
+			'chemical': request_post.get('chemical')
 		}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 		
