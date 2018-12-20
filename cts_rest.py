@@ -186,7 +186,7 @@ class CTS_REST(object):
 				'structure': structure,
 				'generationLimit': gen_limit,
 				'populationLimit': 0,
-				'likelyLimit': 0.001,
+				'likelyLimit': 0.1,
 				# 'transformationLibraries': trans_libs,
 				'excludeCondition': ""  # 'generateImages': False
 			}
