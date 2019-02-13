@@ -25,7 +25,12 @@ from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle spe
 from ..cts_calcs.calculator import Calculator
 from ..cts_calcs.chemical_information import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
+from ..cts_calcs.mongodb_handler import MongoDBHandler
 
+
+
+
+db_handler = MongoDBHandler()
 
 
 
@@ -629,8 +634,18 @@ def getChemicalEditorData(request):
 		else:
 			request_post = request.POST
 
-		_cheminfo_results = ChemInfo().get_cheminfo(request_post)
-		json_data = json.dumps(_cheminfo_results)
+		db_results = db_handler.find_chem_info_document({'chemical': request_post['chemical']})
+		if db_results:
+			# Add response keys (like results below), then push with redis:
+			logging.info("Getting chem info from DB.")
+			del db_results['_id']
+			results = {'status': True, 'request_post': request_post, 'data': db_results}
+		else:
+			logging.info("Making request for chem info.")
+			results = ChemInfo().get_cheminfo(request_post)  # get recults from calc server
+			db_handler.insert_chem_info_data(results['data'])
+
+		json_data = json.dumps(results)
 
 		logging.warning("Returning Chemical Info: {}".format(json_data))
 
