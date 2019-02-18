@@ -31,6 +31,7 @@ from ..cts_calcs.mongodb_handler import MongoDBHandler
 
 
 db_handler = MongoDBHandler()
+db_handler.connect_to_db()
 
 
 
