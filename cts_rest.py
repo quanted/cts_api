@@ -685,11 +685,14 @@ def getChemicalSpeciationData(request_dict):
 		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
 		request_dict['chemical'] = filtered_smiles
 
-		django_request = HttpResponse()
-		django_request.POST = request_dict
-		django_request.method = 'POST'
+		# django_request = HttpResponse()
+		# django_request.POST = request_dict
+		# django_request.method = 'POST'
+		# chemspec_obj = chemspec_output.chemspecOutputPage(django_request)
 
-		chemspec_obj = chemspec_output.chemspecOutputPage(django_request)
+		# Calls chemaxon calculator to get speciation results:
+		chemaxon_calc = JchemCalc()
+		speciation_results = chemaxon_calc.data_request_handler(request_dict)
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
