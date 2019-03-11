@@ -1,27 +1,21 @@
 #  https://docs.djangoproject.com/en/1.6/intro/tutorial03/
-from django.conf.urls import url
-# from django.contrib import admin
-# admin.autodiscover()
+from django.urls import path
 from . import cts_rest
 from . import views
 
-
-# All view functions here must be in '/views/views.py'
-# path: serverLocation/jchem/...
-
-# todo: use cts_api.views for every endpoint, which calls cts_rest
-
 urlpatterns = [
-	url(r'^$', cts_rest.showSwaggerPage),
-	url(r'^swag/?$', views.getSwaggerJsonContent),
+	path('v2/', views.showSwaggerPageV2),
+	path('v2/swag/', views.getSwaggerJsonContentV2),
+	path('v2/<str:endpoint>/', views.getCalcEndpoints),
+]
 
-	# chemical-based urls
-	url(r'^molecule/?$', cts_rest.getChemicalEditorData),
-
-	# calc-based urls
-	url(r'^(?P<calc>.*?)/inputs/?$', views.getCalcInputs),
-	url(r'^(?P<calc>.*?)/run/?$', views.runCalc),
-	url(r'^(?P<endpoint>.*?)/?$', views.getCalcEndpoints),
+urlpatterns += [
+	path('', views.showSwaggerPage),
+	path('swag', views.getSwaggerJsonContent),
+	path('molecule', cts_rest.getChemicalEditorData),
+	path('<str:calc>/inputs', views.getCalcInputs),
+	path('<str:calc>/run', views.runCalc),
+	path('<str:endpoint>', views.getCalcEndpoints),
 ]
 
 # # 404 Error view (file not found)

@@ -7,6 +7,7 @@ from cts_app.cts_api import cts_rest
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
+from django.shortcuts import render_to_response
 import json
 from django.conf import settings
 import logging
@@ -14,7 +15,6 @@ import os
 
 root_path = os.path.abspath(os.path.dirname(__file__))
 
-logging.warning("project root {}".format(root_path))
 
 
 @csrf_exempt
@@ -30,6 +30,37 @@ def getSwaggerJsonContent(request):
 	return response
 
 
+
+@csrf_exempt
+def showSwaggerPage(request):
+	"""
+	display swagger.json with swagger UI
+	for CTS API docs/endpoints
+	"""
+	return render_to_response('cts_api/swagger_index.html')
+
+
+
+@csrf_exempt
+def showSwaggerPageV2(request):
+	return render_to_response('cts_api/swagger_index_v2.html')
+
+
+
+@csrf_exempt
+def getSwaggerJsonContentV2(request):
+	"""
+	Opens up swagger.json content
+	"""
+	swag = open(root_path + '/static/cts_api/swagger-v2.json', 'r').read()
+	swag_filtered = swag.replace('\n', '').strip()
+	swag_obj = json.loads(swag_filtered)
+	response = HttpResponse()
+	response.write(json.dumps(swag_obj))
+	return response
+
+
+
 @csrf_exempt
 def getCTSEndpoints(request):
 	"""
@@ -37,6 +68,7 @@ def getCTSEndpoints(request):
 	"""
 	cts_obj = cts_rest.CTS_REST()
 	return cts_obj.getCTSREST()
+
 
 
 @csrf_exempt
@@ -48,6 +80,7 @@ def getCalcEndpoints(request, endpoint=None):
 		return HttpResponse(json.dumps({'error': "endpoint not recognized"}), content_type='application/json')		
 	else:
 		return cts_rest.CTS_REST().getCalcEndpoints(endpoint)
+
 
 
 @csrf_exempt
@@ -69,9 +102,48 @@ def getCalcInputs(request, calc=None):
 		return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')
 
 
+
 @csrf_exempt
 def runCalc(request, calc=None):
+	request_params = smiles_backslash_fix_for_swagger(request)
+	try:
+		return cts_rest.CTS_REST().runCalc(calc, request_params)
+	except Exception as e:
+		logging.warning("~~~ exception occurring at cts_api views runCalc!")
+		logging.warning("exception: {}".format(e))
+		return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
 
+
+
+@csrf_exempt
+def cts_rest_proxy(request):
+	"""
+	CTS API v2 entry point.
+	"""
+	request_params = smiles_backslash_fix_for_swagger(request)
+
+	if request.method == "GET":
+		# handle get request (return calc info)
+		try:
+			return cts_rest.CTS_REST().getCalcInputs(request_params['chemical'], request_params['calc'], request_params['prop'])
+		except Exception as e:
+			return HttpResponse(json.dumps({'error': "{}".format(e)}), content_type='application/json')
+
+	elif request.method == "POST":
+		# run calc model
+		try:
+			return cts_rest.CTS_REST().runCalc(calc, request_params)
+		except Exception as e:
+			logging.warning("exception: {}".format(e))
+			return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
+
+
+
+def smiles_backslash_fix_for_swagger(request):
+	"""
+	Workaround for backslash encoding issue that occurs when using
+	Swagger API docs.
+	"""
 	try:
 		request_body = request.body
 		request_params = json.loads(request_body)
@@ -87,9 +159,4 @@ def runCalc(request, calc=None):
 		else:
 			request_params = request.POST
 
-	try:
-		return cts_rest.CTS_REST().runCalc(calc, request_params)
-	except Exception as e:
-		logging.warning("~~~ exception occurring at cts_api views runCalc!")
-		logging.warning("exception: {}".format(e))
-		return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
+	return request_params

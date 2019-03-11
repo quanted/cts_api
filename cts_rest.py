@@ -12,7 +12,6 @@ import pytz
 
 from django.http import HttpResponse, HttpRequest
 from django.template.loader import render_to_string
-from django.shortcuts import render_to_response
 
 from ..cts_calcs.calculator_chemaxon import JchemCalc
 from ..cts_calcs.calculator_epi import EpiCalc
@@ -21,6 +20,7 @@ from ..cts_calcs.calculator_test import TestCalc
 from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
+from ..cts_calcs.calculator_opera import OperaCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
 from ..cts_calcs.chemical_information import SMILESFilter
@@ -246,19 +246,15 @@ class CTS_REST(object):
 			pchem_data = {}
 			if calc == 'chemaxon':
 				pchem_data = JchemCalc().data_request_handler(request_dict)
-				# logging.warning("PCHEM DATA: {}".format(pchem_data))
 			elif calc == 'epi':
 				_epi_calc = EpiCalc()
 				pchem_data = _epi_calc.data_request_handler(request_dict)
-
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
 					_response_obj.update(request_dict)
 					return HttpResponse(json.dumps(_response_obj))
-
 				# with updated epi, have to pick out desired prop:
-				# _epi_water_sol = []  # water_sol will return two data objects for api
 				_methods_list = []
 				for data_obj in pchem_data.get('data'):
 					epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
@@ -287,19 +283,22 @@ class CTS_REST(object):
 				
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
-
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
 					_response_obj.update(request_dict)
 					return HttpResponse(json.dumps(_response_obj))
-
 				# with updated measured, have to pick out desired prop:
 				for data_obj in pchem_data.get('data'):
 					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == measured_prop_name:
 						pchem_data['data'] = data_obj['data'] # only want request prop
 						pchem_data['prop'] = request_dict['prop']  # use cts prop name
+
+			elif calc == 'opera':
+				opera_calc = OperaCalc()
+				# Make CTS oriented request to OPERA
+				pchem_data = opera_calc.data_request_handler(request_dict)
 			
 			_response.update({'data': pchem_data})
 
@@ -604,14 +603,7 @@ class Metabolizer_CTS_REST(CTS_REST):
 			'generationLimit': 1,
 			'transformationLibraries': ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
 		}
-
-
-def showSwaggerPage(request):
-	"""
-	display swagger.json with swagger UI
-	for CTS API docs/endpoints
-	"""
-	return render_to_response('cts_api/swagger_index.html')
+		
 
 
 def getChemicalEditorData(request):
@@ -696,11 +688,12 @@ def getChemicalSpeciationData(request_dict):
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
-			'data': chemspec_obj.run_data
+			# 'data': chemspec_obj.run_data
+			'data': speciation_results
 		}
 		json_data = json.dumps(wrapped_post)
 
-		logging.info("chemspec model data: {}".format(chemspec_obj))
+		# logging.info("chemspec model data: {}".format(chemspec_obj))
 
 		return HttpResponse(json_data, content_type='application/json')
 
