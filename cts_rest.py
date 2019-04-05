@@ -219,11 +219,7 @@ class CTS_REST(object):
 		else:
 
 			try:
-
-				logging.warning("REQUEST DICT TYPE: {}".format(type(request_dict)))
-
 				_orig_smiles = request_dict.get('chemical')
-				logging.info("ORIG SMILES: {}".format(_orig_smiles))
 				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
@@ -259,8 +255,6 @@ class CTS_REST(object):
 				for data_obj in pchem_data.get('data'):
 					epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == epi_prop_name:
-						# if request_dict['prop'] == 'water_sol':
-						# 	_methods_list.append(data_obj)
 						if data_obj.get('method'):
 							_epi_methods = _epi_calc.propMap.get(request_dict['prop']).get('methods')
 							data_obj['method'] = _epi_methods.get(data_obj['method'])  # use pchem table name for method
@@ -297,6 +291,8 @@ class CTS_REST(object):
 
 			elif calc == 'opera':
 				opera_calc = OperaCalc()
+				if not isinstance(request_dict.get('chemical'), list):
+					request_dict['chemical'] = list(request_dict['chemical'])
 				# Make CTS oriented request to OPERA
 				pchem_data = opera_calc.data_request_handler(request_dict)
 			
