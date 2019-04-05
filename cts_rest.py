@@ -23,7 +23,8 @@ from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..cts_calcs.calculator_opera import OperaCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
-from ..cts_calcs.chemical_information import SMILESFilter
+# from ..cts_calcs.chemical_information import SMILESFilter
+from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
 from ..cts_calcs.mongodb_handler import MongoDBHandler
 
@@ -614,6 +615,7 @@ def getChemicalEditorData(request):
 	so large, a bool, "structureData", is used to determine
 	whether or not to grab it. It's only needed in chem edit tab.
 	"""
+	chem_info_obj = ChemInfo()
 	try:
 
 		if 'message' in request.POST:
@@ -623,7 +625,9 @@ def getChemicalEditorData(request):
 		else:
 			request_post = request.POST
 
-		db_results = db_handler.find_chem_info_document({'chemical': request_post['chemical']})
+		# db_results = db_handler.find_chem_info_document({'chemical': request_post['chemical']})
+		dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)
+		db_results = db_handler.find_chem_info_document({'dsstoxSubstanceId': dsstox_result.get('dsstoxSubstanceId')})
 		if db_results:
 			# Add response keys (like results below), then push with redis:
 			logging.info("Getting chem info from DB.")
@@ -631,7 +635,7 @@ def getChemicalEditorData(request):
 			results = {'status': True, 'request_post': request_post, 'data': db_results}
 		else:
 			logging.info("Making request for chem info.")
-			results = ChemInfo().get_cheminfo(request_post)  # get recults from calc server
+			results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
 			db_handler.insert_chem_info_data(results['data'])
 
 		json_data = json.dumps(results)
