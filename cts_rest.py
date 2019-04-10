@@ -640,8 +640,6 @@ def getChemicalEditorData(request):
 
 		json_data = json.dumps(results)
 
-		logging.warning("Returning Chemical Info: {}".format(json_data))
-
 		return HttpResponse(json_data, content_type='application/json')
 
 	except KeyError as error:
