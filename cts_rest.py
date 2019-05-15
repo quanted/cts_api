@@ -33,6 +33,7 @@ from ..cts_calcs.mongodb_handler import MongoDBHandler
 
 db_handler = MongoDBHandler()
 db_handler.connect_to_db()
+chem_info_obj = ChemInfo()
 
 
 
@@ -291,12 +292,34 @@ class CTS_REST(object):
 						pchem_data['prop'] = request_dict['prop']  # use cts prop name
 
 			elif calc == 'opera':
+
 				opera_calc = OperaCalc()
-				if not isinstance(request_dict.get('chemical'), list):
-					request_dict['chemical'] = list(request_dict['chemical'])
-				# Make CTS oriented request to OPERA
-				pchem_data = opera_calc.data_request_handler(request_dict)
-			
+
+				# opera p-chem db check:
+				########################################################
+				dsstox_result = chem_info_obj.get_cheminfo(request_dict, only_dsstox=True)
+				dtxcid_result = db_handler.find_dtxcid_document({'DTXSID': dsstox_result.get('dsstoxSubstanceId')})
+				db_results = None
+				if dtxcid_result:
+					db_results = db_handler.find_pchem_document({
+						'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),  # TODO: change key to DTXCID
+						'prop': request_dict.get('prop')
+					})
+				pchem_data = {}
+				if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
+					# Add response keys (like results below), then push with redis:
+					logging.info("Getting p-chem data from DB.")
+					del db_results['_id']
+					pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
+					pchem_data['data'].update(request_dict)
+					pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
+				else:
+					logging.info("Making request for p-chem data.")
+					if not isinstance(request_dict.get('chemical'), list):
+						request_dict['chemical'] = [request_dict['chemical']]
+					# Makes CTS oriented request to OPERA:
+					pchem_data = opera_calc.data_request_handler(request_dict)
+				########################################################
 			_response.update({'data': pchem_data})
 
 		return HttpResponse(json.dumps(_response), content_type="application/json")
@@ -615,33 +638,28 @@ def getChemicalEditorData(request):
 	so large, a bool, "structureData", is used to determine
 	whether or not to grab it. It's only needed in chem edit tab.
 	"""
-	chem_info_obj = ChemInfo()
 	try:
-
 		if 'message' in request.POST:
-			# Receiving request from cts_stress node server..
-			# todo: should generalize and not have conditional
 			request_post = json.loads(request.POST.get('message'))
 		else:
 			request_post = request.POST
-
-		# db_results = db_handler.find_chem_info_document({'chemical': request_post['chemical']})
-		dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)
-		db_results = db_handler.find_chem_info_document({'dsstoxSubstanceId': dsstox_result.get('dsstoxSubstanceId')})
-		if db_results:
-			# Add response keys (like results below), then push with redis:
-			logging.info("Getting chem info from DB.")
-			del db_results['_id']
-			results = {'status': True, 'request_post': request_post, 'data': db_results}
-		else:
-			logging.info("Making request for chem info.")
-			results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
-			db_handler.insert_chem_info_data(results['data'])
-
+		# # chem_info database routine:
+		# ########################################################################
+		# dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)
+		# db_results = db_handler.find_chem_info_document({'dsstoxSubstanceId': dsstox_result.get('dsstoxSubstanceId')})
+		# if db_results:
+		# 	# Add response keys (like results below), then push with redis:
+		# 	logging.info("Getting chem info from DB.")
+		# 	del db_results['_id']
+		# 	results = {'status': True, 'request_post': request_post, 'data': db_results}
+		# else:
+		# 	logging.info("Making request for chem info.")
+		# 	results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
+		# 	db_handler.insert_chem_info_data(results['data'])
+		# ########################################################################
+		results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
 		json_data = json.dumps(results)
-
 		return HttpResponse(json_data, content_type='application/json')
-
 	except KeyError as error:
 		logging.warning(error)
 		wrapped_post = {
@@ -650,10 +668,8 @@ def getChemicalEditorData(request):
 			'chemical': request_post.get('chemical')
 		}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
-		
 	except Exception as error:
 		logging.warning(error)
-		# wrapped_post = {'status': False, 'error': str(error)}
 		wrapped_post = {'status': False, 'error': "Cannot validate chemical"}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
@@ -666,35 +682,18 @@ def getChemicalSpeciationData(request_dict):
 	:param request - chemspec_model
 	:return: chemical speciation data response json
 	"""
-
 	try:
-
-		logging.info("Incoming request for speciation data: {}".format(request_dict))
-
 		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
-		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
 		request_dict['chemical'] = filtered_smiles
-
-		# django_request = HttpResponse()
-		# django_request.POST = request_dict
-		# django_request.method = 'POST'
-		# chemspec_obj = chemspec_output.chemspecOutputPage(django_request)
-
 		# Calls chemaxon calculator to get speciation results:
 		chemaxon_calc = JchemCalc()
 		speciation_results = chemaxon_calc.data_request_handler(request_dict)
-
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
-			# 'data': chemspec_obj.run_data
 			'data': speciation_results
 		}
 		json_data = json.dumps(wrapped_post)
-
-		# logging.info("chemspec model data: {}".format(chemspec_obj))
-
 		return HttpResponse(json_data, content_type='application/json')
-
 	except Exception as error:
 		logging.warning("Error in cts_rest, getChemicalSpecation(): {}".format(error))
 		return HttpResponse("Error getting speciation data")
