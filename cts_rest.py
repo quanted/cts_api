@@ -23,15 +23,13 @@ from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..cts_calcs.calculator_opera import OperaCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
-# from ..cts_calcs.chemical_information import SMILESFilter
 from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
 from ..cts_calcs.mongodb_handler import MongoDBHandler
 
 
 
-
-
+db_handler = MongoDBHandler()
 chem_info_obj = ChemInfo()
 
 
@@ -214,7 +212,6 @@ class CTS_REST(object):
 			_response.update({'data': json.loads(_progeny_tree)})
 
 		elif calc == 'speciation':
-			logging.info("CTS REST - speciation")
 			return getChemicalSpeciationData(request_dict)
 
 		else:
@@ -296,10 +293,9 @@ class CTS_REST(object):
 
 				# opera p-chem db check:
 				########################################################
-				db_handler = MongoDBHandler()
 				db_handler.connect_to_db()
 				if not db_handler.is_connected:
-					logging.info("Making request for p-chem data.")
+					logging.debug("Running OPERA model for p-chem data.")
 					if not isinstance(request_dict.get('chemical'), list):
 						request_dict['chemical'] = [request_dict['chemical']]
 					# Makes CTS oriented request to OPERA:
@@ -317,7 +313,7 @@ class CTS_REST(object):
 						pchem_data = {}
 						if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
 							# Add response keys (like results below), then push with redis:
-							logging.info("Getting p-chem data from DB.")
+							logging.debug("Getting p-chem data from DB.")
 							del db_results['_id']
 							pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
 							pchem_data['data'].update(request_dict)
