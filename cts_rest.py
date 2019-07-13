@@ -179,7 +179,8 @@ class CTS_REST(object):
 	def runCalc(self, calc, request_dict):
 
 		_response = {}
-		_response = self.meta_info
+		calc_obj = self.getCalcObject(calc)
+		_response = calc_obj.meta_info
 
 		if calc == 'metabolizer':
 			structure = request_dict.get('structure')
