@@ -198,6 +198,13 @@ class CTS_REST(object):
 			}
 
 
+			# TODO: Move to calculator_metabolizer?
+			if gen_limit > 4:
+				_response_obj = dict(request_dict)
+				_response_obj['data'] = "Must request generation limit <= 4 generations."
+				return HttpResponse(json.dumps(_response_obj), content_type="application/json")
+
+
 			# metabolizerList = ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
 			# NOTE: Only adding 'transformationLibraries' key:val if hydrolysis and/or reduction selected, but not mammalian metabolism
 			if len(trans_libs) > 0 and not 'human_biotransformation' in trans_libs:
@@ -631,7 +638,7 @@ class Metabolizer_CTS_REST(CTS_REST):
 		
 
 
-def getChemicalEditorData(request):
+def getChemicalEditorData(request_post):
 	"""
 	Makes call to Calculator for chemaxon
 	data. Converts incoming structure to smiles,
@@ -644,10 +651,6 @@ def getChemicalEditorData(request):
 	whether or not to grab it. It's only needed in chem edit tab.
 	"""
 	try:
-		if 'message' in request.POST:
-			request_post = json.loads(request.POST.get('message'))
-		else:
-			request_post = request.POST
 		# # chem_info database routine:
 		# ########################################################################
 		# dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)

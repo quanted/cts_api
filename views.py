@@ -116,6 +116,25 @@ def runCalc(request, calc=None):
 
 
 @csrf_exempt
+def get_chem_info(request):
+
+	request_post = {}
+	if 'message' in request.POST:
+		# accounts for request from nodejs (e.g., cts_stress)
+		request_post = json.loads(request.POST.get('message'))
+	else:
+		request_post = request.POST
+
+	# request_params = smiles_backslash_fix_for_swagger(request_post)
+	try:
+		return cts_rest.getChemicalEditorData(request_post)
+	except Exception as e:
+		logging.warning("cts rest exception: {}".format(e))
+		return HttpResponse(json.dumps({'error": "Error getting chemical information'}))
+
+
+
+@csrf_exempt
 def cts_rest_proxy(request):
 	"""
 	CTS API v2 entry point.
