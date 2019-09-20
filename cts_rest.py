@@ -16,7 +16,6 @@ from django.template.loader import render_to_string
 from ..cts_calcs.calculator_chemaxon import JchemCalc
 from ..cts_calcs.calculator_epi import EpiCalc
 from ..cts_calcs.calculator_measured import MeasuredCalc
-from ..cts_calcs.calculator_test import TestCalc
 from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
@@ -271,9 +270,6 @@ class CTS_REST(object):
 				if len(_methods_list) > 0:
 					# epi water solubility has two data objects..
 					pchem_data['data'] = _methods_list
-
-			elif calc == 'test':
-				pchem_data = TestCalc().data_request_handler(request_dict)
 
 			elif calc == 'testws':
 				pchem_data = TestWSCalc().data_request_handler(request_dict)
