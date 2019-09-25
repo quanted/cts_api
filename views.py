@@ -125,6 +125,10 @@ def get_chem_info(request):
 	else:
 		request_post = request.POST
 
+	if len(request_post) < 1 and len(request.body) > 1:
+		# accounts for request being in body (e.g., postman)
+		request_post = json.loads(request.body.decode('utf-8'))
+
 	# request_params = smiles_backslash_fix_for_swagger(request_post)
 	try:
 		return cts_rest.getChemicalEditorData(request_post)
