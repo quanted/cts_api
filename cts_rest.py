@@ -19,6 +19,7 @@ from ..cts_calcs.calculator_measured import MeasuredCalc
 from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
+from ..cts_calcs.calculator_biotrans import BiotransCalc
 from ..cts_calcs.calculator_opera import OperaCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
@@ -127,6 +128,10 @@ class CTS_REST(object):
 			return Measured_CTS_REST()
 		elif calc == 'metabolizer':
 			return Metabolizer_CTS_REST()
+		elif calc == 'opera':
+			return OperaCalc()
+		elif calc == 'biotrans':
+			return BiotransCalc()
 		else:
 			return None
 
@@ -299,7 +304,7 @@ class CTS_REST(object):
 				########################################################
 				db_handler.connect_to_db()
 				if not db_handler.is_connected:
-					logging.debug("Running OPERA model for p-chem data.")
+					logging.info("Running OPERA model for p-chem data.")
 					if not isinstance(request_dict.get('chemical'), list):
 						request_dict['chemical'] = [request_dict['chemical']]
 					# Makes CTS oriented request to OPERA:
@@ -317,7 +322,7 @@ class CTS_REST(object):
 						pchem_data = {}
 						if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
 							# Add response keys (like results below), then push with redis:
-							logging.debug("Getting p-chem data from DB.")
+							logging.info("Getting p-chem data from DB.")
 							del db_results['_id']
 							pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
 							pchem_data['data'].update(request_dict)
@@ -325,10 +330,18 @@ class CTS_REST(object):
 					except Exception as e:
 						logging.warning("Error requesting opera data: {}".format(e))
 						db_handler.mongodb_conn.close()
-						pchem_data = {'status': False, 'request_post': request_dict, data: "Cannot reach OPERA"}
+						pchem_data = {'status': False, 'request_post': request_dict, 'data': "Cannot reach OPERA"}
 				db_handler.mongodb_conn.close()  # closes mongodb connection
 				########################################################
+			
+			elif calc == 'biotrans':
+				biotrans_calc = BiotransCalc()
+				pchem_data = biotrans_calc.data_request_handler(request_dict)
+
 			_response.update({'data': pchem_data})
+
+
+
 
 		return HttpResponse(json.dumps(_response), content_type="application/json")
 
