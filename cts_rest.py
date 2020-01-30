@@ -315,10 +315,17 @@ class CTS_REST(object):
 						dtxcid_result = db_handler.find_dtxcid_document({'DTXSID': dsstox_result.get('dsstoxSubstanceId')})
 						db_results = None
 						if dtxcid_result:
-							db_results = db_handler.find_pchem_document({
-								'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),  # TODO: change key to DTXCID
-								'prop': request_dict.get('prop')
-							})
+							if request_dict.get('prop') == 'kow_wph':
+								db_results = db_handler.find_pchem_document({
+									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),
+									'prop': request_dict.get('prop'),
+									'ph': float(request_dict.get('ph', 7.4))
+								})
+							else:
+								db_results = db_handler.find_pchem_document({
+									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),  # TODO: change key to DTXCID
+									'prop': request_dict.get('prop')
+								})
 						pchem_data = {}
 						if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
 							# Add response keys (like results below), then push with redis:
