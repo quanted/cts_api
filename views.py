@@ -7,7 +7,7 @@ from cts_app.cts_api import cts_rest
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpRequest, HttpResponse
 from django.template.loader import render_to_string
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 import json
 from django.conf import settings
 import logging
@@ -37,13 +37,13 @@ def showSwaggerPage(request):
 	display swagger.json with swagger UI
 	for CTS API docs/endpoints
 	"""
-	return render_to_response('cts_api/swagger_index.html')
+	return render(request, 'cts_api/swagger_index.html')
 
 
 
 @csrf_exempt
 def showSwaggerPageV2(request):
-	return render_to_response('cts_api/swagger_index_v2.html')
+	return render(request, 'cts_api/swagger_index_v2.html')
 
 
 
