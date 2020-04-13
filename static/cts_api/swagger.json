@@ -440,18 +440,18 @@
                 }
             }
         },
-        "/sparc": {
+        "/opera": {
             "get": {
-                "summary": "SPARC REST endpoints",
-                "description": "Returns endpoints for SPARC calculator.\n",
+                "summary": "OPERA REST endpoints",
+                "description": "Returns endpoints for OPERA calculator.\n",
                 "tags": [
-                    "sparc"
+                    "opera"
                 ],
                 "responses": {
                     "200": {
-                        "description": "SPARC REST endpoints",
+                        "description": "OPERA REST endpoints",
                         "schema": {
-                            "$ref": "#/definitions/SPARC"
+                            "$ref": "#/definitions/OPERA"
                         }
                     },
                     "default": {
@@ -463,18 +463,18 @@
                 }
             }
         },
-        "/sparc/inputs": {
+        "/opera/inputs": {
             "post": {
-                "summary": "SPARC input schema",
-                "description": "This endpoint returns the inputs used to\nget estimated values from SPARC.\n",
+                "summary": "opera input schema",
+                "description": "This endpoint returns the inputs used to\nget estimated values from opera.\n",
                 "tags": [
-                    "sparc"
+                    "opera"
                 ],
                 "parameters": [
                     {
                         "name": "inputs",
                         "in": "body",
-                        "description": "Inputs for SPARC p-chem property request.",
+                        "description": "Inputs for opera p-chem property request.",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/CalcInputs"
@@ -483,9 +483,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "sparc input schema",
+                        "description": "opera input schema",
                         "schema": {
-                            "$ref": "#/definitions/SPARCInputsResponse"
+                            "$ref": "#/definitions/OPERAInputsResponse"
                         }
                     },
                     "default": {
@@ -497,27 +497,27 @@
                 }
             }
         },
-        "/sparc/run": {
+        "/opera/run": {
             "post": {
-                "summary": "Run sparc calculator for p-chem data.",
-                "description": "This endpoint runs sparc and returns p-chem data\nfrom requested p-chem property.\n",
+                "summary": "Run opera calculator for p-chem data.",
+                "description": "This endpoint runs opera and returns p-chem data\nfrom requested p-chem property.\n",
                 "tags": [
-                    "sparc"
+                    "opera"
                 ],
                 "parameters": [
                     {
                         "name": "inputs",
                         "in": "body",
-                        "description": "Outputs for SPARC p-chem property request.",
+                        "description": "Outputs for opera p-chem property request.",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/RunSparcInputs"
+                            "$ref": "#/definitions/RunOperaInputs"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Run sparc calculator for p-chem data.",
+                        "description": "Run opera calculator for p-chem data.",
                         "schema": {
                             "$ref": "#/definitions/CalcOutputs"
                         }
@@ -803,7 +803,7 @@
                 }
             }
         },
-        "SPARC": {
+        "OPERA": {
             "type": "object",
             "properties": {
                 "metaInfo": {
@@ -817,7 +817,7 @@
                 },
                 "calc": {
                     "type": "string",
-                    "default": "sparc"
+                    "default": "opera"
                 }
             }
         },
@@ -967,7 +967,7 @@
                 }
             }
         },
-        "SPARCInputsResponse": {
+        "OPERAInputsResponse": {
             "type": "object",
             "properties": {
                 "inputs": {
@@ -983,7 +983,7 @@
                         },
                         "calc": {
                             "type": "string",
-                            "default": "sparc"
+                            "default": "opera"
                         },
                         "prop": {
                             "type": "string",
@@ -1106,7 +1106,7 @@
                 }
             }
         },
-        "RunSparcInputs": {
+        "RunOperaInputs": {
             "type": "object",
             "properties": {
                 "chemical": {
@@ -1115,8 +1115,8 @@
                 },
                 "calc": {
                     "type": "string",
-                    "default": "sparc",
-                    "description": "chemaxon, epi, test, sparc, or measured p-chem calculators."
+                    "default": "opera",
+                    "description": "chemaxon, epi, test, opera, or measured p-chem calculators."
                 },
                 "prop": {
                     "type": "string",

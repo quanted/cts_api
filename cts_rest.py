@@ -12,20 +12,25 @@ import pytz
 
 from django.http import HttpResponse, HttpRequest
 from django.template.loader import render_to_string
-from django.shortcuts import render_to_response
 
 from ..cts_calcs.calculator_chemaxon import JchemCalc
 from ..cts_calcs.calculator_epi import EpiCalc
 from ..cts_calcs.calculator_measured import MeasuredCalc
-from ..cts_calcs.calculator_test import TestCalc
 from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
+from ..cts_calcs.calculator_biotrans import BiotransCalc
+from ..cts_calcs.calculator_opera import OperaCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
-from ..cts_calcs.chemical_information import SMILESFilter
+from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
+from ..cts_calcs.mongodb_handler import MongoDBHandler
 
+
+
+db_handler = MongoDBHandler()
+chem_info_obj = ChemInfo()
 
 
 
@@ -123,6 +128,10 @@ class CTS_REST(object):
 			return Measured_CTS_REST()
 		elif calc == 'metabolizer':
 			return Metabolizer_CTS_REST()
+		elif calc == 'opera':
+			return OperaCalc()
+		elif calc == 'biotrans':
+			return BiotransCalc()
 		else:
 			return None
 
@@ -174,7 +183,8 @@ class CTS_REST(object):
 	def runCalc(self, calc, request_dict):
 
 		_response = {}
-		_response = self.meta_info
+		calc_obj = self.getCalcObject(calc)
+		_response = calc_obj.meta_info
 
 		if calc == 'metabolizer':
 			structure = request_dict.get('structure')
@@ -186,10 +196,17 @@ class CTS_REST(object):
 				'structure': structure,
 				'generationLimit': gen_limit,
 				'populationLimit': 0,
-				'likelyLimit': 0.001,
+				'likelyLimit': 0.1,
 				# 'transformationLibraries': trans_libs,
 				'excludeCondition': ""  # 'generateImages': False
 			}
+
+
+			# TODO: Move to calculator_metabolizer?
+			if gen_limit > 4:
+				_response_obj = dict(request_dict)
+				_response_obj['data'] = "Must request generation limit <= 4 generations."
+				return HttpResponse(json.dumps(_response_obj), content_type="application/json")
 
 
 			# metabolizerList = ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
@@ -207,17 +224,12 @@ class CTS_REST(object):
 			_response.update({'data': json.loads(_progeny_tree)})
 
 		elif calc == 'speciation':
-			logging.info("CTS REST - speciation")
 			return getChemicalSpeciationData(request_dict)
 
 		else:
 
 			try:
-
-				logging.warning("REQUEST DICT TYPE: {}".format(type(request_dict)))
-
 				_orig_smiles = request_dict.get('chemical')
-				logging.info("ORIG SMILES: {}".format(_orig_smiles))
 				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
@@ -240,25 +252,19 @@ class CTS_REST(object):
 			pchem_data = {}
 			if calc == 'chemaxon':
 				pchem_data = JchemCalc().data_request_handler(request_dict)
-				# logging.warning("PCHEM DATA: {}".format(pchem_data))
 			elif calc == 'epi':
 				_epi_calc = EpiCalc()
 				pchem_data = _epi_calc.data_request_handler(request_dict)
-
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
 					_response_obj.update(request_dict)
 					return HttpResponse(json.dumps(_response_obj))
-
 				# with updated epi, have to pick out desired prop:
-				# _epi_water_sol = []  # water_sol will return two data objects for api
 				_methods_list = []
 				for data_obj in pchem_data.get('data'):
 					epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == epi_prop_name:
-						# if request_dict['prop'] == 'water_sol':
-						# 	_methods_list.append(data_obj)
 						if data_obj.get('method'):
 							_epi_methods = _epi_calc.propMap.get(request_dict['prop']).get('methods')
 							data_obj['method'] = _epi_methods.get(data_obj['method'])  # use pchem table name for method
@@ -270,9 +276,6 @@ class CTS_REST(object):
 					# epi water solubility has two data objects..
 					pchem_data['data'] = _methods_list
 
-			elif calc == 'test':
-				pchem_data = TestCalc().data_request_handler(request_dict)
-
 			elif calc == 'testws':
 				pchem_data = TestWSCalc().data_request_handler(request_dict)
 
@@ -281,21 +284,71 @@ class CTS_REST(object):
 				
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
-
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
 					_response_obj.update(request_dict)
 					return HttpResponse(json.dumps(_response_obj))
-
 				# with updated measured, have to pick out desired prop:
 				for data_obj in pchem_data.get('data'):
 					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == measured_prop_name:
 						pchem_data['data'] = data_obj['data'] # only want request prop
 						pchem_data['prop'] = request_dict['prop']  # use cts prop name
+
+			elif calc == 'opera':
+
+				opera_calc = OperaCalc()
+
+				# opera p-chem db check:
+				########################################################
+				db_handler.connect_to_db()
+				if not db_handler.is_connected:
+					logging.info("Running OPERA model for p-chem data.")
+					if not isinstance(request_dict.get('chemical'), list):
+						request_dict['chemical'] = [request_dict['chemical']]
+					# Makes CTS oriented request to OPERA:
+					pchem_data = opera_calc.data_request_handler(request_dict)
+				else:
+					try:
+						dsstox_result = chem_info_obj.get_cheminfo(request_dict, only_dsstox=True)
+						dtxcid_result = db_handler.find_dtxcid_document({'DTXSID': dsstox_result.get('dsstoxSubstanceId')})
+						db_results = None
+						if dtxcid_result:
+							if request_dict.get('prop') == 'kow_wph':
+								db_results = db_handler.find_pchem_document({
+									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),
+									'prop': request_dict.get('prop'),
+									'ph': float(request_dict.get('ph', 7.4))
+								})
+							else:
+								db_results = db_handler.find_pchem_document({
+									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),  # TODO: change key to DTXCID
+									'prop': request_dict.get('prop')
+								})
+						pchem_data = {}
+						if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
+							# Add response keys (like results below), then push with redis:
+							logging.info("Getting p-chem data from DB.")
+							del db_results['_id']
+							pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
+							pchem_data['data'].update(request_dict)
+							pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
+					except Exception as e:
+						logging.warning("Error requesting opera data: {}".format(e))
+						db_handler.mongodb_conn.close()
+						pchem_data = {'status': False, 'request_post': request_dict, 'data': "Cannot reach OPERA"}
+				db_handler.mongodb_conn.close()  # closes mongodb connection
+				########################################################
 			
+			elif calc == 'biotrans':
+				biotrans_calc = BiotransCalc()
+				pchem_data = biotrans_calc.data_request_handler(request_dict)
+
 			_response.update({'data': pchem_data})
+
+
+
 
 		return HttpResponse(json.dumps(_response), content_type="application/json")
 
@@ -598,17 +651,10 @@ class Metabolizer_CTS_REST(CTS_REST):
 			'generationLimit': 1,
 			'transformationLibraries': ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
 		}
+		
 
 
-def showSwaggerPage(request):
-	"""
-	display swagger.json with swagger UI
-	for CTS API docs/endpoints
-	"""
-	return render_to_response('cts_api/swagger_index.html')
-
-
-def getChemicalEditorData(request):
+def getChemicalEditorData(request_post):
 	"""
 	Makes call to Calculator for chemaxon
 	data. Converts incoming structure to smiles,
@@ -621,34 +667,34 @@ def getChemicalEditorData(request):
 	whether or not to grab it. It's only needed in chem edit tab.
 	"""
 	try:
-
-		if 'message' in request.POST:
-			# Receiving request from cts_stress node server..
-			# todo: should generalize and not have conditional
-			request_post = json.loads(request.POST.get('message'))
-		else:
-			request_post = request.POST
-
-		_cheminfo_results = ChemInfo().get_cheminfo(request_post)
-		json_data = json.dumps(_cheminfo_results)
-
-		logging.warning("Returning Chemical Info: {}".format(json_data))
-
+		# # chem_info database routine:
+		# ########################################################################
+		# dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)
+		# db_results = db_handler.find_chem_info_document({'dsstoxSubstanceId': dsstox_result.get('dsstoxSubstanceId')})
+		# if db_results:
+		# 	# Add response keys (like results below), then push with redis:
+		# 	logging.info("Getting chem info from DB.")
+		# 	del db_results['_id']
+		# 	results = {'status': True, 'request_post': request_post, 'data': db_results}
+		# else:
+		# 	logging.info("Making request for chem info.")
+		# 	results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
+		# 	db_handler.insert_chem_info_data(results['data'])
+		# ########################################################################
+		results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
+		json_data = json.dumps(results)
 		return HttpResponse(json_data, content_type='application/json')
-
 	except KeyError as error:
 		logging.warning(error)
 		wrapped_post = {
 			'status': False, 
 			'error': 'Error validating chemical',
-			'chemical': chemical
+			'chemical': request_post.get('chemical')
 		}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
-		
 	except Exception as error:
 		logging.warning(error)
-		# wrapped_post = {'status': False, 'error': str(error)}
-		wrapped_post = {'status': False, 'error': "Cannot validate chemical.."}
+		wrapped_post = {'status': False, 'error': "Cannot validate chemical"}
 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 
@@ -660,31 +706,18 @@ def getChemicalSpeciationData(request_dict):
 	:param request - chemspec_model
 	:return: chemical speciation data response json
 	"""
-
 	try:
-
-		logging.info("Incoming request for speciation data: {}".format(request_dict))
-
 		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
-		logging.info("Speciation filtered SMILES: {}".format(filtered_smiles))
 		request_dict['chemical'] = filtered_smiles
-
-		django_request = HttpResponse()
-		django_request.POST = request_dict
-		django_request.method = 'POST'
-
-		chemspec_obj = chemspec_output.chemspecOutputPage(django_request)
-
+		# Calls chemaxon calculator to get speciation results:
+		chemaxon_calc = JchemCalc()
+		speciation_results = chemaxon_calc.data_request_handler(request_dict)
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
-			'data': chemspec_obj.run_data
+			'data': speciation_results
 		}
 		json_data = json.dumps(wrapped_post)
-
-		logging.info("chemspec model data: {}".format(chemspec_obj))
-
 		return HttpResponse(json_data, content_type='application/json')
-
 	except Exception as error:
 		logging.warning("Error in cts_rest, getChemicalSpecation(): {}".format(error))
 		return HttpResponse("Error getting speciation data")
