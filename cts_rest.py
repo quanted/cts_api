@@ -189,7 +189,7 @@ class CTS_REST(object):
 		if calc == 'metabolizer':
 			structure = request_dict.get('structure')
 			gen_limit = request_dict.get('generationLimit')
-			trans_libs = request_dict.get('transformationLibraries')
+			trans_libs = request_dict.get('transformationLibraries', [])
 
 			# TODO: Add transformationLibraries key:val logic
 			metabolizer_request = {
@@ -220,7 +220,11 @@ class CTS_REST(object):
 				logging.warning("error making data request: {}".format(e))
 				raise
 
-			_progeny_tree = MetabolizerCalc().recursive(response, int(gen_limit))
+			unranked = False
+			if 'photolysis' in trans_libs:
+				unranked = True
+
+			_progeny_tree = MetabolizerCalc().recursive(response, int(gen_limit), unranked)
 			_response.update({'data': json.loads(_progeny_tree)})
 
 		elif calc == 'speciation':
