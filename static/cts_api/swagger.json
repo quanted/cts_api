@@ -718,6 +718,40 @@
                     }
                 }
             }
+        },
+        "/envipath/run": {
+            "post": {
+                "summary": "Run envipath calculator for microbial biotransformation data (envipath.org).",
+                "description": "This endpoint runs envipath and returns microbial biotransformation data.",
+                "tags": [
+                    "envipath"
+                ],
+                "parameters": [
+                    {
+                        "name": "inputs",
+                        "in": "body",
+                        "description": "Outputs for envipath p-chem property request.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/EnvipathInputs"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Run envipath calculator for p-chem data.",
+                        "schema": {
+                            "$ref": "#/definitions/EnvipathOutput"
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "schema": {
+                            "$ref": "#/definitions/Error"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -877,6 +911,21 @@
                         "abiotic_reduction",
                         "human_biotransformation"
                     ]
+                }
+            }
+        },
+        "EnvipathInputs": {
+            "type": "object",
+            "properties": {
+                "chemical": {
+                    "type": "string",
+                    "default": "CCCC",
+                    "description": "Chemical in smiles, CAS, formula, or IUPAC format."
+                },
+                "gen_limit": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of generations for structure's transformation products."
                 }
             }
         },
@@ -1064,6 +1113,25 @@
                         },
                         "node": {
                             "$ref": "#/definitions/Molecule"
+                        }
+                    }
+                }
+            }
+        },
+        "MetabolizerOutput": {
+            "type": "object",
+            "properties": {
+                "metaInfo": {
+                    "$ref": "#/definitions/MetaInfo"
+                },
+                "outputs": {
+                    "type": "object",
+                    "properties": {
+                        "chemical": {
+                            "type": "string"
+                        },
+                        "tree": {
+                            "type": "string"
                         }
                     }
                 }

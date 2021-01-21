@@ -21,6 +21,7 @@ from ..cts_calcs.calculator_sparc import SparcCalc
 from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..cts_calcs.calculator_biotrans import BiotransCalc
 from ..cts_calcs.calculator_opera import OperaCalc
+from ..cts_calcs.calculator_envipath import EnvipathCalc
 from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
 from ..cts_calcs.smilesfilter import SMILESFilter
@@ -132,6 +133,8 @@ class CTS_REST(object):
 			return OperaCalc()
 		elif calc == 'biotrans':
 			return BiotransCalc()
+		elif calc == 'envipath':
+			return EnvipathCalc()
 		else:
 			return None
 
@@ -349,9 +352,11 @@ class CTS_REST(object):
 				biotrans_calc = BiotransCalc()
 				pchem_data = biotrans_calc.data_request_handler(request_dict)
 
+			elif calc == 'envipath':
+				envipath_calc = EnvipathCalc()
+				pchem_data = envipath_calc.data_request_handler(request_dict)
+
 			_response.update({'data': pchem_data})
-
-
 
 
 		return HttpResponse(json.dumps(_response), content_type="application/json")
