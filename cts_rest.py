@@ -310,12 +310,17 @@ class CTS_REST(object):
 				# opera p-chem db check:
 				########################################################
 				db_handler.connect_to_db()
-				if not db_handler.is_connected:
-					logging.info("Running OPERA model for p-chem data.")
+
+				db_results = opera_calc.check_opera_db(request_dict)
+
+				# if not db_handler.is_connected:
+				if not db_results:
+					logging.warning("Running OPERA model for p-chem data.")
 					if not isinstance(request_dict.get('chemical'), list):
 						request_dict['chemical'] = [request_dict['chemical']]
 					# Makes CTS oriented request to OPERA:
 					pchem_data = opera_calc.data_request_handler(request_dict)
+
 				else:
 					try:
 						dsstox_result = chem_info_obj.get_cheminfo(request_dict, only_dsstox=True)
@@ -334,13 +339,13 @@ class CTS_REST(object):
 									'prop': request_dict.get('prop')
 								})
 						pchem_data = {}
-						if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
-							# Add response keys (like results below), then push with redis:
-							logging.info("Getting p-chem data from DB.")
-							del db_results['_id']
-							pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
-							pchem_data['data'].update(request_dict)
-							pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
+
+						# if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
+						logging.info("Getting p-chem data from DB.")
+						del db_results['_id']
+						pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
+						pchem_data['data'].update(request_dict)
+						pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
 					except Exception as e:
 						logging.warning("Error requesting opera data: {}".format(e))
 						db_handler.mongodb_conn.close()
