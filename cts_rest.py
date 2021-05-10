@@ -200,35 +200,23 @@ class CTS_REST(object):
 				'generationLimit': gen_limit,
 				'populationLimit': 0,
 				'likelyLimit': 0.1,
-				# 'transformationLibraries': trans_libs,
+				'transformationLibraries': trans_libs,
 				'excludeCondition': ""  # 'generateImages': False
 			}
 
-
-			# TODO: Move to calculator_metabolizer?
-			if gen_limit > 4:
-				_response_obj = dict(request_dict)
-				_response_obj['data'] = "Must request generation limit <= 4 generations."
-				return HttpResponse(json.dumps(_response_obj), content_type="application/json")
-
-
-			# metabolizerList = ["hydrolysis", "abiotic_reduction", "human_biotransformation"]
-			# NOTE: Only adding 'transformationLibraries' key:val if hydrolysis and/or reduction selected, but not mammalian metabolism
-			if len(trans_libs) > 0 and not 'human_biotransformation' in trans_libs:
-				metabolizer_request.update({'transformationLibraries': trans_libs})
+			_request = {
+				'metabolizer_post': metabolizer_request,
+				'chemical': structure,
+				'gen_limit': gen_limit
+			}
 
 			try:
-				response = MetabolizerCalc().getTransProducts(metabolizer_request)
+				response = MetabolizerCalc().data_request_handler(_request)
 			except Exception as e:
 				logging.warning("error making data request: {}".format(e))
 				raise
-
-			unranked = False
-			if 'photolysis' in trans_libs:
-				unranked = True
-
-			_progeny_tree = MetabolizerCalc().recursive(response, int(gen_limit), unranked)
-			_response.update({'data': json.loads(_progeny_tree)})
+				
+			_response.update({'data': response})
 
 		elif calc == 'speciation':
 			return getChemicalSpeciationData(request_dict)
@@ -307,51 +295,28 @@ class CTS_REST(object):
 
 				opera_calc = OperaCalc()
 
-				# opera p-chem db check:
-				########################################################
-				db_handler.connect_to_db()
+				try:
 
-				db_results = opera_calc.check_opera_db(request_dict)
-
-				# if not db_handler.is_connected:
-				if not db_results:
-					logging.warning("Running OPERA model for p-chem data.")
-					if not isinstance(request_dict.get('chemical'), list):
-						request_dict['chemical'] = [request_dict['chemical']]
-					# Makes CTS oriented request to OPERA:
-					pchem_data = opera_calc.data_request_handler(request_dict)
-
-				else:
-					try:
-						dsstox_result = chem_info_obj.get_cheminfo(request_dict, only_dsstox=True)
-						dtxcid_result = db_handler.find_dtxcid_document({'DTXSID': dsstox_result.get('dsstoxSubstanceId')})
-						db_results = None
-						if dtxcid_result:
-							if request_dict.get('prop') == 'kow_wph':
-								db_results = db_handler.find_pchem_document({
-									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),
-									'prop': request_dict.get('prop'),
-									'ph': float(request_dict.get('ph', 7.4))
-								})
-							else:
-								db_results = db_handler.find_pchem_document({
-									'dsstoxSubstanceId': dtxcid_result.get('DTXCID'),  # TODO: change key to DTXCID
-									'prop': request_dict.get('prop')
-								})
-						pchem_data = {}
-
-						# if db_results and dsstox_result.get('dsstoxSubstanceId') != "N/A":
+					db_results = self.opera_calc.check_opera_db(request_post)  # checks db for pchem data
+					if not db_results:
+						logging.info("Running OPERA model.")
+						pchem_data = self.opera_calc.data_request_handler(request_post)
+					else:
+						logging.info("Getting OPERA p-chem from database.")
+						pchem_data = {'valid': True, 'request_post': request_post, 'data': []}
+						db_results = self.opera_calc.curate_logd(db_results, request_post, request_post.get('ph'))
+						pchem_data['data'] = self.wrap_db_results(request_post, db_results, request_post.get('props'))
+						pchem_data['data'] = self.opera_calc.remove_opera_db_duplicates(pchem_data['data'])
 						logging.info("Getting p-chem data from DB.")
 						del db_results['_id']
 						pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
 						pchem_data['data'].update(request_dict)
 						pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
-					except Exception as e:
-						logging.warning("Error requesting opera data: {}".format(e))
-						db_handler.mongodb_conn.close()
-						pchem_data = {'status': False, 'request_post': request_dict, 'data': "Cannot reach OPERA"}
-				db_handler.mongodb_conn.close()  # closes mongodb connection
-				########################################################
+
+				except Exception as e:
+					logging.warning("Error requesting opera data: {}".format(e))
+					db_handler.mongodb_conn.close()
+					pchem_data = {'status': False, 'request_post': request_dict, 'data': "Cannot reach OPERA"}
 			
 			elif calc == 'biotrans':
 				biotrans_calc = BiotransCalc()
