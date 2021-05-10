@@ -909,7 +909,11 @@
                     "default": [
                         "hydrolysis",
                         "abiotic_reduction",
-                        "human_biotransformation"
+                        "photolysis_unranked",
+                        "photolysis_ranked",
+                        "mammalian_metabolism",
+                        "combined_abioticreduction_hydrolysis",
+                        "combined_photolysis_abiotic_hydrolysis"
                     ]
                 }
             }
