@@ -645,7 +645,7 @@ def getChemicalEditorData(request_post):
 	so large, a bool, "structureData", is used to determine
 	whether or not to grab it. It's only needed in chem edit tab.
 	"""
-	try:
+# 	try:
 		# # chem_info database routine:
 		# ########################################################################
 		# dsstox_result = chem_info_obj.get_cheminfo(request_post, only_dsstox=True)
@@ -660,21 +660,21 @@ def getChemicalEditorData(request_post):
 		# 	results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
 		# 	db_handler.insert_chem_info_data(results['data'])
 		# ########################################################################
-		results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
-		json_data = json.dumps(results)
-		return HttpResponse(json_data, content_type='application/json')
-	except KeyError as error:
-		logging.warning(error)
-		wrapped_post = {
-			'status': False, 
-			'error': 'Error validating chemical',
-			'chemical': request_post.get('chemical')
-		}
-		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
-	except Exception as error:
-		logging.warning(error)
-		wrapped_post = {'status': False, 'error': "Cannot validate chemical"}
-		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
+	results = chem_info_obj.get_cheminfo(request_post)  # get recults from calc server
+	json_data = json.dumps(results)
+	return HttpResponse(json_data, content_type='application/json')
+# 	except KeyError as error:
+# 		logging.warning(error)
+# 		wrapped_post = {
+# 			'status': False, 
+# 			'error': 'Error validating chemical',
+# 			'chemical': request_post.get('chemical')
+# 		}
+# 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
+# 	except Exception as error:
+# 		logging.warning(error)
+# 		wrapped_post = {'status': False, 'error': "Cannot validate chemical"}
+# 		return HttpResponse(json.dumps(wrapped_post), content_type='application/json')
 
 
 def getChemicalSpeciationData(request_dict):
