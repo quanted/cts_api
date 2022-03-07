@@ -297,16 +297,16 @@ class CTS_REST(object):
 
 				try:
 
-					db_results = self.opera_calc.check_opera_db(request_dict)  # checks db for pchem data
+					db_results = opera_calc.check_opera_db(request_dict)  # checks db for pchem data
 					if not db_results:
 						logging.info("Running OPERA model.")
-						pchem_data = self.opera_calc.data_request_handler(request_dict)
+						pchem_data = opera_calc.data_request_handler(request_dict)
 					else:
 						logging.info("Getting OPERA p-chem from database.")
 						pchem_data = {'valid': True, 'request_post': request_dict, 'data': []}
-						db_results = self.opera_calc.curate_logd(db_results, request_dict, request_dict.get('ph'))
+						db_results = opera_calc.curate_logd(db_results, request_dict, request_dict.get('ph'))
 						pchem_data['data'] = self.wrap_db_results(request_dict, db_results, request_dict.get('props'))
-						pchem_data['data'] = self.opera_calc.remove_opera_db_duplicates(pchem_data['data'])
+						pchem_data['data'] = opera_calc.remove_opera_db_duplicates(pchem_data['data'])
 						logging.info("Getting p-chem data from DB.")
 						del db_results['_id']
 						pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
