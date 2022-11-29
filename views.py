@@ -12,6 +12,8 @@ import json
 from django.conf import settings
 import logging
 import os
+import bleach
+
 
 root_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -106,6 +108,7 @@ def getCalcInputs(request, calc=None):
 @csrf_exempt
 def runCalc(request, calc=None):
 	request_params = smiles_backslash_fix_for_swagger(request)
+	request_params = bleach_request(request_params)
 	try:
 		return cts_rest.CTS_REST().runCalc(calc, request_params)
 	except Exception as e:
@@ -129,7 +132,8 @@ def get_chem_info(request):
 		# accounts for request being in body (e.g., postman)
 		request_post = json.loads(request.body.decode('utf-8'))
 
-	# request_params = smiles_backslash_fix_for_swagger(request_post)
+	request_post = bleach_request(request_post)
+
 	try:
 		return cts_rest.getChemicalEditorData(request_post)
 	except Exception as e:
@@ -183,3 +187,13 @@ def smiles_backslash_fix_for_swagger(request):
 			request_params = request.POST
 
 	return request_params
+
+
+def bleach_request(request_post):
+	"""
+	Loops request key:vals and sanitizes them with bleach.
+	"""
+	bleached_request = {}
+	for key, val in request_post.items():
+		bleached_request[key] = bleach.clean(val)
+	return bleached_request
