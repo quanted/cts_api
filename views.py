@@ -195,5 +195,8 @@ def bleach_request(request_post):
 	"""
 	bleached_request = {}
 	for key, val in request_post.items():
-		bleached_request[key] = bleach.clean(val)
+		if type(val) == str:
+			bleached_request[key] = bleach.clean(val)
+		else:
+			bleached_request[key] = val
 	return bleached_request
