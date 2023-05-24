@@ -257,8 +257,14 @@ class CTS_REST(object):
 					return HttpResponse(json.dumps(_response_obj))
 				# with updated epi, have to pick out desired prop:
 				_methods_list = []
+
+				epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
+
+				if epi_prop_name == "qsar":
+					_response.update({'data': pchem_data})
+					return HttpResponse(json.dumps(_response), content_type="application/json")
+
 				for data_obj in pchem_data.get('data'):
-					epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == epi_prop_name:
 						if data_obj.get('method'):
 							_epi_methods = _epi_calc.propMap.get(request_dict['prop']).get('methods')
