@@ -22,11 +22,11 @@ from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..cts_calcs.calculator_biotrans import BiotransCalc
 from ..cts_calcs.calculator_opera import OperaCalc
 from ..cts_calcs.calculator_envipath import EnvipathCalc
-from ..models.chemspec import chemspec_output  # todo: have cts_calcs handle specation, sans chemspec output route
 from ..cts_calcs.calculator import Calculator
 from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
 from ..cts_calcs.mongodb_handler import MongoDBHandler
+from ..cts_calcs.calculator_pkasolver import PkaSolverCalc
 
 
 
@@ -697,6 +697,13 @@ def getChemicalSpeciationData(request_dict):
 		# Calls chemaxon calculator to get speciation results:
 		chemaxon_calc = JchemCalc()
 		speciation_results = chemaxon_calc.data_request_handler(request_dict)
+
+		# Gets data from pkasolver:
+		pkasolver = PkaSolverCalc()
+		pkasolver_results = pkasolver.data_request_handler(request_dict)
+
+		speciation_results["pkasolver"] = pkasolver_results
+
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
 			'data': speciation_results
