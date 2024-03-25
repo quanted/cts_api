@@ -27,6 +27,7 @@ from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
 from ..cts_calcs.mongodb_handler import MongoDBHandler
 from ..cts_calcs.calculator_pkasolver import PkaSolverCalc
+from ..cts_calcs.calculator_molgpka import MolgpkaCalc
 
 
 
@@ -694,6 +695,7 @@ def getChemicalSpeciationData(request_dict):
 	try:
 		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
 		request_dict['chemical'] = filtered_smiles
+		
 		# Calls chemaxon calculator to get speciation results:
 		chemaxon_calc = JchemCalc()
 		speciation_results = chemaxon_calc.data_request_handler(request_dict)
@@ -701,8 +703,12 @@ def getChemicalSpeciationData(request_dict):
 		# Gets data from pkasolver:
 		pkasolver = PkaSolverCalc()
 		pkasolver_results = pkasolver.data_request_handler(request_dict)
-
 		speciation_results["pkasolver"] = pkasolver_results
+
+		# Gets data from molgpka:
+		molgpka = MolgpkaCalc()
+		molgpka_results = molgpka.data_request_handler(request_dict)
+		speciation_results["molgpka"] = molgpka_results
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
