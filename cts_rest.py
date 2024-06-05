@@ -695,20 +695,27 @@ def getChemicalSpeciationData(request_dict):
 	try:
 		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
 		request_dict['chemical'] = filtered_smiles
-		
+
+		speciation_results = {}
+
+		# Gets data from molgpka:
+		molgpka = MolgpkaCalc()
+		molgpka_results = molgpka.data_request_handler(request_dict)
+		speciation_results["molgpka"] = molgpka_results
+
+		# NOTE: Uses smiles from molgpka for chemaxon pka request.
+		request_dict["chemical"] = molgpka_results["data"]["molgpka_smiles"]
+
 		# Calls chemaxon calculator to get speciation results:
 		chemaxon_calc = JchemCalc()
-		speciation_results = chemaxon_calc.data_request_handler(request_dict)
+		speciation_results.update(chemaxon_calc.data_request_handler(request_dict))
 
 		# Gets data from pkasolver:
 		pkasolver = PkaSolverCalc()
 		pkasolver_results = pkasolver.data_request_handler(request_dict)
 		speciation_results["pkasolver"] = pkasolver_results
 
-		# Gets data from molgpka:
-		molgpka = MolgpkaCalc()
-		molgpka_results = molgpka.data_request_handler(request_dict)
-		speciation_results["molgpka"] = molgpka_results
+		
 
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
