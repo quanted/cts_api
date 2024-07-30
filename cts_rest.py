@@ -703,8 +703,14 @@ def getChemicalSpeciationData(request_dict):
 		molgpka_results = molgpka.data_request_handler(request_dict)
 		speciation_results["molgpka"] = molgpka_results
 
-		# NOTE: Uses smiles from molgpka for chemaxon pka request.
-		request_dict["chemical"] = molgpka_results["data"]["molgpka_smiles"]
+
+		# TODO: Check if molgpka data and smiles exists, if not use filtered_smiles
+		if molgpka_results.get("status") == True:
+			# NOTE: Uses smiles from molgpka for chemaxon pka request.
+			request_dict["chemical"] = molgpka_results["data"]["molgpka_smiles"]
+		else:
+			logging.warning("cts_rest getChemicalSpeciationData(): {}".format(molgpka_results.get("error")))
+			logging.warning("Using original filter_smiles from jchem: {}".format(filtered_smiles))
 
 		# Calls chemaxon calculator to get speciation results:
 		chemaxon_calc = JchemCalc()
