@@ -22,6 +22,7 @@ from ..cts_calcs.calculator_metabolizer import MetabolizerCalc
 from ..cts_calcs.calculator_biotrans import BiotransCalc
 from ..cts_calcs.calculator_opera import OperaCalc
 from ..cts_calcs.calculator_envipath import EnvipathCalc
+from ..cts_calcs.calculator_rdkit import RdkitCalc
 from ..cts_calcs.calculator import Calculator
 from ..cts_calcs.smilesfilter import SMILESFilter
 from ..cts_calcs.chemical_information import ChemInfo
@@ -136,6 +137,8 @@ class CTS_REST(object):
 			return BiotransCalc()
 		elif calc == 'envipath':
 			return EnvipathCalc()
+		elif calc == 'equation':
+			return RdkitCalc()
 		else:
 			return None
 
@@ -283,6 +286,10 @@ class CTS_REST(object):
 
 			elif calc == 'sparc':
 				pchem_data = SparcCalc().data_request_handler(request_dict)
+
+			elif calc == 'equation':
+				smiles = request_dict.get('chemical')
+				pchem_data = RdkitCalc().get_diffusivity(smiles)
 				
 			elif calc == 'measured':
 				pchem_data = MeasuredCalc().data_request_handler(request_dict)
