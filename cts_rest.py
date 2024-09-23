@@ -708,10 +708,13 @@ def getChemicalSpeciationData(request_dict):
 		# Gets data from molgpka:
 		molgpka = MolgpkaCalc()
 		molgpka_results = molgpka.data_request_handler(request_dict)
+
+		logging.warning("molgpka_results: {}".format(molgpka_results))
+
 		speciation_results["molgpka"] = molgpka_results
 
 		# TODO: Check if molgpka data and smiles exists, if not use filtered_smiles
-		if molgpka_results["data"].get("status") == True:
+		if not "error" in molgpka_results:
 			# NOTE: Uses smiles from molgpka for chemaxon pka request.
 			request_dict["chemical"] = molgpka_results["data"]["molgpka_smiles"]
 		else:
@@ -725,6 +728,9 @@ def getChemicalSpeciationData(request_dict):
 		# Gets data from pkasolver:
 		pkasolver = PkaSolverCalc()
 		pkasolver_results = pkasolver.data_request_handler(request_dict)
+
+		logging.warning("pkasolver_results: {}".format(pkasolver_results))
+
 		speciation_results["pkasolver"] = pkasolver_results
 
 		
