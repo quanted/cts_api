@@ -31,9 +31,22 @@ from ..cts_calcs.calculator_pkasolver import PkaSolverCalc
 from ..cts_calcs.calculator_molgpka import MolgpkaCalc
 
 
-
 db_handler = MongoDBHandler()
 chem_info_obj = ChemInfo()
+smiles_filter = SMILESFilter()
+
+jchem_calc = JchemCalc()
+epi_calc = EpiCalc()
+measured_calc = MeasuredCalc()
+testws_calc = TestWSCalc()
+sparc_calc = SparcCalc()
+metabolizer_calc = MetabolizerCalc()
+opera_calc = OperaCalc()
+bio_calc = BiotransCalc()
+envipath_calc = EnvipathCalc()
+rdkit_calc = RdkitCalc()
+pkasolver_calc = PkaSolverCalc()
+molgpka_calc = MolgpkaCalc()
 
 
 
@@ -229,7 +242,7 @@ class CTS_REST(object):
 
 			try:
 				_orig_smiles = request_dict.get('chemical')
-				_filtered_smiles = SMILESFilter().filterSMILES(_orig_smiles)
+				_filtered_smiles = smiles_filter.filterSMILES(_orig_smiles)
 				request_dict.update({
 					'orig_smiles': _orig_smiles,
 					'chemical': _filtered_smiles,
@@ -250,10 +263,9 @@ class CTS_REST(object):
 
 			pchem_data = {}
 			if calc == 'chemaxon':
-				pchem_data = JchemCalc().data_request_handler(request_dict)
+				pchem_data = jchem_calc.data_request_handler(request_dict)
 			elif calc == 'epi':
-				_epi_calc = EpiCalc()
-				pchem_data = _epi_calc.data_request_handler(request_dict)
+				pchem_data = epi_calc.data_request_handler(request_dict)
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
@@ -262,7 +274,7 @@ class CTS_REST(object):
 				# with updated epi, have to pick out desired prop:
 				_methods_list = []
 
-				epi_prop_name = _epi_calc.propMap[request_dict['prop']]['result_key']
+				epi_prop_name = epi_calc.propMap[request_dict['prop']]['result_key']
 
 				if epi_prop_name == "qsar":
 					_response.update({'data': pchem_data})
@@ -271,7 +283,7 @@ class CTS_REST(object):
 				for data_obj in pchem_data.get('data'):
 					if data_obj['prop'] == epi_prop_name:
 						if data_obj.get('method'):
-							_epi_methods = _epi_calc.propMap.get(request_dict['prop']).get('methods')
+							_epi_methods = epi_calc.propMap.get(request_dict['prop']).get('methods')
 							data_obj['method'] = _epi_methods.get(data_obj['method'])  # use pchem table name for method
 							_methods_list.append(data_obj)
 						else:
@@ -282,17 +294,17 @@ class CTS_REST(object):
 					pchem_data['data'] = _methods_list
 
 			elif calc == 'testws':
-				pchem_data = TestWSCalc().data_request_handler(request_dict)
+				pchem_data = testws_calc.data_request_handler(request_dict)
 
 			elif calc == 'sparc':
-				pchem_data = SparcCalc().data_request_handler(request_dict)
+				pchem_data = sparc_calc.data_request_handler(request_dict)
 
 			elif calc == 'equation':
 				smiles = request_dict.get('chemical')
-				pchem_data = RdkitCalc().get_diffusivity(smiles)
+				pchem_data = rdkit_calc.get_diffusivity(smiles)
 				
 			elif calc == 'measured':
-				pchem_data = MeasuredCalc().data_request_handler(request_dict)
+				pchem_data = measured_calc.data_request_handler(request_dict)
 				if not pchem_data.get('valid'):
 					logging.warning("{} request error: {}".format(calc, pchem_data))
 					_response_obj = {'error': pchem_data.get('data')}
@@ -300,17 +312,14 @@ class CTS_REST(object):
 					return HttpResponse(json.dumps(_response_obj))
 				# with updated measured, have to pick out desired prop:
 				for data_obj in pchem_data.get('data'):
-					measured_prop_name = MeasuredCalc().propMap[request_dict['prop']]['result_key']
+					measured_prop_name = measured_calc.propMap[request_dict['prop']]['result_key']
 					if data_obj['prop'] == measured_prop_name:
 						pchem_data['data'] = data_obj['data'] # only want request prop
 						pchem_data['prop'] = request_dict['prop']  # use cts prop name
 
 			elif calc == 'opera':
 
-				opera_calc = OperaCalc()
-
 				try:
-
 					db_results = opera_calc.check_opera_db(request_dict)  # checks db for pchem data
 					if not db_results:
 						logging.info("Running OPERA model.")
@@ -326,7 +335,6 @@ class CTS_REST(object):
 						pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
 						pchem_data['data'].update(request_dict)
 						pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
-
 				except Exception as e:
 					logging.warning("Error requesting opera data: {}".format(e))
 					db_handler.mongodb_conn.close()
@@ -699,18 +707,15 @@ def getChemicalSpeciationData(request_dict):
 	:param request - chemspec_model
 	:return: chemical speciation data response json
 	"""
+
 	try:
-		filtered_smiles = SMILESFilter().filterSMILES(request_dict.get('chemical'))
+		filtered_smiles = smiles_filter.filterSMILES(request_dict.get('chemical'))
 		request_dict['chemical'] = filtered_smiles
 
 		speciation_results = {}
 
 		# Gets data from molgpka:
-		molgpka = MolgpkaCalc()
-		molgpka_results = molgpka.data_request_handler(request_dict)
-
-		logging.warning("molgpka_results: {}".format(molgpka_results))
-
+		molgpka_results = molgpka_calc.data_request_handler(request_dict)
 		speciation_results["molgpka"] = molgpka_results
 
 		# TODO: Check if molgpka data and smiles exists, if not use filtered_smiles
@@ -722,19 +727,16 @@ def getChemicalSpeciationData(request_dict):
 			logging.warning("Using original filter_smiles from jchem instead of molgpka for pka: {}\n".format(filtered_smiles))
 
 		# Calls chemaxon calculator to get speciation results:
-		chemaxon_calc = JchemCalc()
-		speciation_results.update(chemaxon_calc.data_request_handler(request_dict))
+		speciation_results.update(jchem_calc.data_request_handler(request_dict))
 
 		# Gets data from pkasolver:
-		pkasolver = PkaSolverCalc()
-		pkasolver_results = pkasolver.data_request_handler(request_dict)
-
-		logging.warning("pkasolver_results: {}".format(pkasolver_results))
-
+		pkasolver_results = pkasolver_calc.data_request_handler(request_dict)
 		speciation_results["pkasolver"] = pkasolver_results
 
+		# Gets Measured pka values:
+		measured_results = measured_calc.data_request_handler(request_dict)
+		speciation_results["measured"] = measured_results
 		
-
 		wrapped_post = {
 			'status': True,  # 'metadata': '',
 			'data': speciation_results
