@@ -327,17 +327,20 @@ class CTS_REST(object):
 					else:
 						logging.info("Getting OPERA p-chem from database.")
 						pchem_data = {'valid': True, 'request_post': request_dict, 'data': []}
-						db_results = opera_calc.curate_logd(db_results, request_dict, request_dict.get('ph'))
-						pchem_data['data'] = self.wrap_db_results(request_dict, db_results, request_dict.get('props'))
-						pchem_data['data'] = opera_calc.remove_opera_db_duplicates(pchem_data['data'])
-						logging.info("Getting p-chem data from DB.")
-						del db_results['_id']
-						pchem_data = {'status': True, 'request_post': request_dict, 'data': db_results}
-						pchem_data['data'].update(request_dict)
-						pchem_data['data'] = opera_calc.convert_units_for_cts(request_dict['prop'], pchem_data['data'])
+						db_results = opera_calc.curate_logd(db_results, request_dict, request_dict.get('ph', 7.4))
+						wrapped_results = opera_calc.wrap_db_results(request_dict, db_results, request_dict.get('prop'))
+						wrapped_results = opera_calc.remove_opera_db_duplicates(wrapped_results)
+
+						if len(wrapped_results) > 1:
+							logging.warning("Multiple results from OPERA p-chem DB. Selecting the first item from list: {}".format(wrapped_results))
+
+						wrapped_results = wrapped_results[0]
+
+						pchem_data.update(wrapped_results)
+						pchem_data["data"] = wrapped_results.get("data")
+
 				except Exception as e:
 					logging.warning("Error requesting opera data: {}".format(e))
-					db_handler.mongodb_conn.close()
 					pchem_data = {'status': False, 'request_post': request_dict, 'data': "Cannot reach OPERA"}
 			
 			elif calc == 'biotrans':
