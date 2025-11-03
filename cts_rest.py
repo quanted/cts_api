@@ -36,7 +36,6 @@ chem_info_obj = ChemInfo()
 smiles_filter = SMILESFilter()
 
 jchem_calc = JchemCalc()
-epi_calc = EpiCalc()
 measured_calc = MeasuredCalc()
 testws_calc = TestWSCalc()
 sparc_calc = SparcCalc()
@@ -47,6 +46,11 @@ envipath_calc = EnvipathCalc()
 rdkit_calc = RdkitCalc()
 pkasolver_calc = PkaSolverCalc()
 molgpka_calc = MolgpkaCalc()
+
+epi_calc = EpiCalc()
+if "api/submit" in os.getenv("CTS_EPI_SERVER"):
+	self.epi_calc = EpiCalcJar()
+	logging.info("EPI Suite URL indicates jar API being used.")
 
 
 
