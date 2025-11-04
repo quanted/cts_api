@@ -16,6 +16,7 @@ from django.template.loader import render_to_string
 
 from ..cts_calcs.calculator_chemaxon import JchemCalc
 from ..cts_calcs.calculator_epi import EpiCalc
+from ..cts_calcs.calculator_epi_jar import EpiCalcJar
 from ..cts_calcs.calculator_measured import MeasuredCalc
 from ..cts_calcs.calculator_test import TestWSCalc
 from ..cts_calcs.calculator_sparc import SparcCalc
