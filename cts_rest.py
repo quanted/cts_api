@@ -51,7 +51,7 @@ molgpka_calc = MolgpkaCalc()
 
 epi_calc = EpiCalc()
 if "api/submit" in os.getenv("CTS_EPI_SERVER"):
-	self.epi_calc = EpiCalcJar()
+	epi_calc = EpiCalcJar()
 	logging.info("EPI Suite URL indicates jar API being used.")
 
 
