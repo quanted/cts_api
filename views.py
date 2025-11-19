@@ -109,12 +109,12 @@ def getCalcInputs(request, calc=None):
 def runCalc(request, calc=None):
 	request_params = smiles_backslash_fix_for_swagger(request)
 	request_params = bleach_request(request_params)
-	try:
-		return cts_rest.CTS_REST().runCalc(calc, request_params)
-	except Exception as e:
-		logging.warning("~~~ exception occurring at cts_api views runCalc!")
-		logging.warning("exception: {}".format(e))
-		return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
+	# try:
+	return cts_rest.CTS_REST().runCalc(calc, request_params)
+	# except Exception as e:
+	# 	logging.warning("~~~ exception occurring at cts_api views runCalc!")
+	# 	logging.warning("exception: {}".format(e))
+	# 	return HttpResponse(json.dumps({'error': "Error requesting data from {}".format(calc)}), content_type='application/json')
 
 
 
