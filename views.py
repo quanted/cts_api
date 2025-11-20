@@ -107,6 +107,10 @@ def getCalcInputs(request, calc=None):
 
 @csrf_exempt
 def runCalc(request, calc=None):
+
+
+	logging.warning("VIEWS RUN CALC CALLED")
+
 	request_params = smiles_backslash_fix_for_swagger(request)
 	request_params = bleach_request(request_params)
 	# try:
