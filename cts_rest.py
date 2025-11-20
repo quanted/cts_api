@@ -208,6 +208,10 @@ class CTS_REST(object):
 
 	def runCalc(self, calc, request_dict):
 
+
+		logging.warning("cts_rest calc: {}, request_dict: {}".format(calc, request_dict))
+
+
 		_response = {}
 		calc_obj = self.getCalcObject(calc)
 		_response = calc_obj.meta_info
@@ -234,6 +238,9 @@ class CTS_REST(object):
 			}
 
 			try:
+
+				logging.warning("_request: {}".format(_request))
+
 				response = MetabolizerCalc().data_request_handler(_request)
 			except Exception as e:
 				logging.warning("error making data request: {}".format(e))
