@@ -1443,13 +1443,15 @@
           },
           "generationLimit": {
             "type": "integer",
-            "description": "Number of generations for structure's transformation products."
+            "description": "Number of generations for structure's transformation products.",
+            "default": 1
           },
           "transformationLibraries": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "default": ["hydrolysis"]
           }
         }
       },
